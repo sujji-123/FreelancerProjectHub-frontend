@@ -47,7 +47,7 @@ export default function ClientDashboard() {
   const [activeTab, setActiveTab] = useState("open");
   const [activeProposalTab, setActiveProposalTab] = useState("pending");
 
-  // demo data (replace with API calls later)
+ 
   const notifications = useMemo(
     () => [
       { id: 1, message: "New proposal received", read: false },
@@ -75,7 +75,7 @@ export default function ClientDashboard() {
     ],
     []
   );
-  // make proposals stateful so Accept/Reject can update UI
+  
   const [proposals, setProposals] = useState([
     { id: 1, project: "Logo Design", freelancer: "John Doe", bid: 500, status: "pending" },
     { id: 2, project: "Website Redesign", freelancer: "Jane Smith", bid: 1200, status: "pending" },
@@ -83,7 +83,7 @@ export default function ClientDashboard() {
     { id: 4, project: "Mobile App", freelancer: "Sarah Wilson", bid: 2500, status: "rejected" },
   ]);
 
-  // simple local chat (placeholder)
+
   const [chatMessages, setChatMessages] = useState([
     { id: 1, from: "You", text: "Hi there 👋" },
     { id: 2, from: "Support", text: "Welcome to your dashboard!" },
@@ -100,7 +100,7 @@ export default function ClientDashboard() {
     }
   }, [user, navigate]);
 
-  // keep user state in sync if localStorage changes (and on logout below)
+ 
   useEffect(() => {
     const onStorage = () => setUser(readUser());
     window.addEventListener("storage", onStorage);
@@ -110,11 +110,11 @@ export default function ClientDashboard() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    setUser(null); // use setUser
+    setUser(null); 
     navigate("/login");
   };
 
-  // helpers
+  
   const getProjectsByStatus = (status) =>
     projects.filter(
       (p) =>
@@ -161,10 +161,10 @@ export default function ClientDashboard() {
     setChatInput("");
   };
 
-  // --- UI ---
+  
   return (
     <div className="min-h-screen flex bg-gray-50">
-      {/* ====== Sidebar (kept) ====== */}
+      
       <aside className="w-64 bg-white border-r hidden md:flex flex-col">
         <div className="px-6 py-5 flex items-center gap-3 border-b">
           <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
@@ -186,6 +186,12 @@ export default function ClientDashboard() {
 
           <div className="mt-4">
             <p className="px-3 text-xs uppercase tracking-wide text-gray-400 mb-2">My Projects</p>
+           <Link to="/client/my-projects" type="button"
+              className={`w-full text-left px-3 py-2 rounded-lg ${activeTab === "all" ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-100 text-gray-700"}`}
+              onClick={() => setActiveTab("all")}
+            >
+              All Projects
+            </Link>
             <button
               className={`w-full text-left px-3 py-2 rounded-lg ${activeTab === "open" ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-100 text-gray-700"}`}
               onClick={() => setActiveTab("open")}
@@ -227,9 +233,9 @@ export default function ClientDashboard() {
         </div>
       </aside>
 
-      {/* ====== Main ====== */}
+      
       <main className="flex-1 p-6 md:p-8 overflow-auto">
-        {/* Header */}
+        
         <header className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-800">Welcome, {user?.name || "Client"}!</h1>
@@ -253,16 +259,16 @@ export default function ClientDashboard() {
                 </span>
               )}
             </button>
-            {/* explicit Logout button uses handleLogout */}
+            
             <button onClick={handleLogout} className="hidden md:inline-flex items-center gap-2 px-3 py-2 border rounded-lg text-gray-700 hover:bg-gray-100">
               <FaSignOutAlt /> Logout
             </button>
           </div>
         </header>
 
-        {/* Two-column main area */}
+        
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* My Projects */}
+          
           <section className="bg-white rounded-xl shadow-md p-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold text-gray-800">My Projects</h2>
@@ -313,7 +319,7 @@ export default function ClientDashboard() {
             </div>
           </section>
 
-          {/* Proposals Review with FILTER TABS (restored) */}
+          
           <section className="bg-white rounded-xl shadow-md p-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold text-gray-800">Proposals Review</h2>
@@ -353,7 +359,7 @@ export default function ClientDashboard() {
                       </span>
                     </div>
 
-                    {/* actions only when pending */}
+                    
                     {p.status === "pending" ? (
                       <div className="flex items-center gap-2">
                         <button
@@ -377,7 +383,7 @@ export default function ClientDashboard() {
           </section>
         </div>
 
-        {/* Chat Button (floating, now left bottom corner) */}
+        
         {!showChat && (
           <button
             onClick={() => setShowChat(true)}
@@ -390,9 +396,9 @@ export default function ClientDashboard() {
           </button>
         )}
 
-        {/* Chat + Task Progress */}
+        
         <div className={`grid grid-cols-1 lg:grid-cols-${showChat ? "3" : "2"} gap-8 mt-8`}>
-          {/* Conditionally render Chat panel */}
+          
           {showChat && (
             <section
               className={`bg-white rounded-xl shadow-md p-6 lg:col-span-1 transition-all duration-300 ${
@@ -444,7 +450,7 @@ export default function ClientDashboard() {
             </section>
           )}
 
-          {/* Task Progress - expand if chat is hidden */}
+          
           <section
             className={`bg-white rounded-xl shadow-md p-6 ${showChat ? "lg:col-span-2" : "lg:col-span-2"} transition-all duration-300`}
           >
