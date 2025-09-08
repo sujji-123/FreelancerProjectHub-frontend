@@ -1,4 +1,4 @@
-// src/pages/client/MyProjects.jsx
+
 import React, { useEffect, useState } from "react";
 import projectService from "../../services/projectService";
 import { toast } from "react-toastify";
@@ -7,7 +7,7 @@ export default function MyProjects() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // state for update modal
+  
   const [editingProject, setEditingProject] = useState(null);
   const [form, setForm] = useState({ title: "", description: "", budget: 0 });
 
@@ -68,7 +68,7 @@ export default function MyProjects() {
         prev.map((p) => (p._id === editingProject._id ? res.data : p))
       );
       toast.success("Project updated");
-      setEditingProject(null); // close modal
+      setEditingProject(null); 
     } catch (err) {
       console.error("Update failed:", err);
       toast.error("Update failed");
@@ -162,7 +162,7 @@ export default function MyProjects() {
         </div>
       )}
 
-      {/* Update Modal */}
+      
       {editingProject && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
           <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-lg">

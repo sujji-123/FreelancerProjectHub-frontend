@@ -1,3 +1,4 @@
+// src/pages/client/ClientDashboard.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
@@ -21,12 +22,16 @@ import {
   FaCompress,
 } from "react-icons/fa";
 
+import projectService from "../services/projectService";
+import proposalService from "../services/proposalService";
+import notificationService from "../services/notificationService";
+
 const readUser = () => {
   try {
     const u = localStorage.getItem("user");
     if (u) return JSON.parse(u);
   } catch {
-    //ignore
+    // ignore
   }
   try {
     const token = localStorage.getItem("token");
@@ -35,7 +40,7 @@ const readUser = () => {
       return dec.user || { name: dec.name, email: dec.email, role: dec.role };
     }
   } catch {
-    //ignore
+    // ignore
   }
   return null;
 };
@@ -44,45 +49,23 @@ export default function ClientDashboard() {
   const navigate = useNavigate();
   const [user, setUser] = useState(readUser());
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("open");
+  const [activeTab, setActiveTab] = useState("open"); // can be "all", "open", "in-progress", "completed"
   const [activeProposalTab, setActiveProposalTab] = useState("pending");
 
- 
-  const notifications = useMemo(
-    () => [
-      { id: 1, message: "New proposal received", read: false },
-      { id: 2, message: "Project completed", read: false },
-      { id: 3, message: "Payment received", read: true },
-    ],
-    []
-  );
+  // data from server
+  const [projects, setProjects] = useState([]);
+  const [proposals, setProposals] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+
+  // small demo tasks remain local (kanban not yet implemented)
   const tasks = useMemo(
     () => [
       { id: 1, title: "Design homepage", dueDate: "June 16", status: "todo", comments: 0, priority: "medium" },
       { id: 2, title: "Landing page design", dueDate: "July 12", status: "todo", comments: 1, priority: "high" },
       { id: 3, title: "Auth system", dueDate: "July 13", status: "progress", comments: 3, priority: "high" },
-      { id: 4, title: "Testing", dueDate: "July 14", status: "progress", comments: 2, priority: "medium" },
-      { id: 5, title: "Deployment", dueDate: "July 25", status: "done", comments: 0, priority: "low" },
     ],
     []
   );
-  const projects = useMemo(
-    () => [
-      { id: 1, title: "E-commerce Website", status: "open", proposals: 5, budget: 2500 },
-      { id: 2, title: "Mobile App Development", status: "in-progress", proposals: 3, budget: 5000 },
-      { id: 3, title: "Logo Design", status: "open", proposals: 2, budget: 800 },
-      { id: 4, title: "Content Writing", status: "completed", proposals: 0, budget: 1200 },
-    ],
-    []
-  );
-  
-  const [proposals, setProposals] = useState([
-    { id: 1, project: "Logo Design", freelancer: "John Doe", bid: 500, status: "pending" },
-    { id: 2, project: "Website Redesign", freelancer: "Jane Smith", bid: 1200, status: "pending" },
-    { id: 3, project: "Marketing Strategy", freelancer: "Mike Johnson", bid: 800, status: "accepted" },
-    { id: 4, project: "Mobile App", freelancer: "Sarah Wilson", bid: 2500, status: "rejected" },
-  ]);
-
 
   const [chatMessages, setChatMessages] = useState([
     { id: 1, from: "You", text: "Hi there 👋" },
@@ -100,7 +83,6 @@ export default function ClientDashboard() {
     }
   }, [user, navigate]);
 
- 
   useEffect(() => {
     const onStorage = () => setUser(readUser());
     window.addEventListener("storage", onStorage);
@@ -110,18 +92,58 @@ export default function ClientDashboard() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    setUser(null); 
+    setUser(null);
     navigate("/login");
   };
 
-  
-  const getProjectsByStatus = (status) =>
-    projects.filter(
-      (p) =>
-        p.status === status &&
-        p.title.toLowerCase().includes(searchQuery.trim().toLowerCase())
-    );
+  // fetch projects (client's projects)
+  const loadProjects = async () => {
+    try {
+      const res = await projectService.getMyProjects();
+      // projectService.getMyProjects returns array of project objects (populated client)
+      setProjects(res.data || []);
+    } catch (err) {
+      console.error("loadProjects:", err);
+    }
+  };
+
+  // fetch proposals for this client
+  const loadProposals = async () => {
+    try {
+      const res = await proposalService.getClientProposals();
+      setProposals(res.data || []);
+    } catch (err) {
+      console.error("loadProposals:", err);
+    }
+  };
+
+  const loadNotifications = async () => {
+    try {
+      const res = await notificationService.getNotifications();
+      setNotifications(res.data || []);
+    } catch (err) {
+      console.error("loadNotifications:", err);
+    }
+  };
+
+  useEffect(() => {
+    // initial load
+    loadProjects();
+    loadProposals();
+    loadNotifications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // helpers
+  const getProjectsByStatus = (status) => {
+    const q = searchQuery.trim().toLowerCase();
+    const filtered = status === "all" ? projects : projects.filter((p) => p.status === status);
+    if (!q) return filtered;
+    return filtered.filter((p) => p.title.toLowerCase().includes(q));
+  };
+
   const getProposalsByStatus = (status) => proposals.filter((p) => p.status === status);
+
   const getTasksByStatus = (status) => tasks.filter((t) => t.status === status);
   const unreadNotifications = notifications.filter((n) => !n.read).length;
 
@@ -149,10 +171,24 @@ export default function ClientDashboard() {
     }
   };
 
-  const acceptProposal = (id) =>
-    setProposals((prev) => prev.map((p) => (p.id === id ? { ...p, status: "accepted" } : p)));
-  const rejectProposal = (id) =>
-    setProposals((prev) => prev.map((p) => (p.id === id ? { ...p, status: "rejected" } : p)));
+  // proposal actions
+  const acceptProposal = async (id) => {
+    try {
+      await proposalService.acceptProposal(id);
+      await loadProposals();
+      await loadProjects(); // project status changed (allocated)
+    } catch (err) {
+      console.error("acceptProposal:", err);
+    }
+  };
+  const rejectProposal = async (id) => {
+    try {
+      await proposalService.rejectProposal(id);
+      await loadProposals();
+    } catch (err) {
+      console.error("rejectProposal:", err);
+    }
+  };
 
   const sendChat = () => {
     const txt = chatInput.trim();
@@ -161,10 +197,9 @@ export default function ClientDashboard() {
     setChatInput("");
   };
 
-  
   return (
     <div className="min-h-screen flex bg-gray-50">
-      
+      {/* Sidebar (same as before) */}
       <aside className="w-64 bg-white border-r hidden md:flex flex-col">
         <div className="px-6 py-5 flex items-center gap-3 border-b">
           <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
@@ -186,12 +221,14 @@ export default function ClientDashboard() {
 
           <div className="mt-4">
             <p className="px-3 text-xs uppercase tracking-wide text-gray-400 mb-2">My Projects</p>
-           <Link to="/client/my-projects" type="button"
+
+            <button
               className={`w-full text-left px-3 py-2 rounded-lg ${activeTab === "all" ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-100 text-gray-700"}`}
               onClick={() => setActiveTab("all")}
             >
               All Projects
-            </Link>
+            </button>
+
             <button
               className={`w-full text-left px-3 py-2 rounded-lg ${activeTab === "open" ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-100 text-gray-700"}`}
               onClick={() => setActiveTab("open")}
@@ -233,9 +270,8 @@ export default function ClientDashboard() {
         </div>
       </aside>
 
-      
+      {/* Main */}
       <main className="flex-1 p-6 md:p-8 overflow-auto">
-        
         <header className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-800">Welcome, {user?.name || "Client"}!</h1>
@@ -259,21 +295,19 @@ export default function ClientDashboard() {
                 </span>
               )}
             </button>
-            
             <button onClick={handleLogout} className="hidden md:inline-flex items-center gap-2 px-3 py-2 border rounded-lg text-gray-700 hover:bg-gray-100">
               <FaSignOutAlt /> Logout
             </button>
           </div>
         </header>
 
-        
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
+          {/* My Projects */}
           <section className="bg-white rounded-xl shadow-md p-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold text-gray-800">My Projects</h2>
               <div className="flex space-x-2">
-                {["open", "in-progress", "completed"].map((s) => (
+                {["all", "open", "in-progress", "completed"].map((s) => (
                   <button
                     key={s}
                     onClick={() => setActiveTab(s)}
@@ -289,7 +323,7 @@ export default function ClientDashboard() {
 
             <div className="space-y-4">
               {getProjectsByStatus(activeTab).map((project) => (
-                <div key={project.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md">
+                <div key={project._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md">
                   <div className="flex justify-between items-start">
                     <h3 className="font-semibold text-gray-800">{project.title}</h3>
                     <span
@@ -306,9 +340,9 @@ export default function ClientDashboard() {
                   </div>
                   <div className="mt-2 text-sm text-gray-600">Budget: ${project.budget}</div>
                   <div className="flex justify-between items-center mt-3">
-                    <span className="text-sm text-gray-500">{project.proposals} proposals</span>
+                    <span className="text-sm text-gray-500">{/* count proposals from proposals array */}{proposals.filter(pr => String(pr.project._id) === String(project._id)).length} proposals</span>
                     <Link
-                      to={`/project/${project.id}`}
+                      to={`/project/${project._id}`}
                       className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
                     >
                       Open Collaboration
@@ -319,7 +353,7 @@ export default function ClientDashboard() {
             </div>
           </section>
 
-          
+          {/* Proposals Review */}
           <section className="bg-white rounded-xl shadow-md p-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold text-gray-800">Proposals Review</h2>
@@ -340,12 +374,12 @@ export default function ClientDashboard() {
 
             <div className="space-y-4">
               {getProposalsByStatus(activeProposalTab).map((p) => (
-                <div key={p.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md">
+                <div key={p._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="font-semibold text-gray-800">{p.project}</h3>
-                      <p className="text-sm text-gray-600">Freelancer: {p.freelancer}</p>
-                      <p className="text-sm text-gray-600">Bid: ${p.bid}</p>
+                      <h3 className="font-semibold text-gray-800">{p.project?.title || "Project"}</h3>
+                      <p className="text-sm text-gray-600">Freelancer: {p.freelancer?.name || "Unknown"}</p>
+                      <p className="text-sm text-gray-600">Bid: ${p.bidAmount}</p>
                       <span
                         className={`inline-block mt-2 px-2 py-1 rounded-full text-xs font-medium ${
                           p.status === "pending"
@@ -359,17 +393,16 @@ export default function ClientDashboard() {
                       </span>
                     </div>
 
-                    
                     {p.status === "pending" ? (
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => acceptProposal(p.id)}
+                          onClick={() => acceptProposal(p._id)}
                           className="px-3 py-1 rounded bg-emerald-500 text-white hover:bg-emerald-600"
                         >
                           Accept
                         </button>
                         <button
-                          onClick={() => rejectProposal(p.id)}
+                          onClick={() => rejectProposal(p._id)}
                           className="px-3 py-1 rounded bg-rose-500 text-white hover:bg-rose-600"
                         >
                           Reject
@@ -383,7 +416,7 @@ export default function ClientDashboard() {
           </section>
         </div>
 
-        
+        {/* Chat Button */}
         {!showChat && (
           <button
             onClick={() => setShowChat(true)}
@@ -396,35 +429,19 @@ export default function ClientDashboard() {
           </button>
         )}
 
-        
         <div className={`grid grid-cols-1 lg:grid-cols-${showChat ? "3" : "2"} gap-8 mt-8`}>
-          
           {showChat && (
-            <section
-              className={`bg-white rounded-xl shadow-md p-6 lg:col-span-1 transition-all duration-300 ${
-                chatFullscreen ? "fixed inset-0 z-50 flex flex-col justify-center items-center bg-black bg-opacity-40" : ""
-              }`}
-              style={chatFullscreen ? { maxWidth: "100vw", maxHeight: "100vh" } : {}}
-            >
+            <section className={`bg-white rounded-xl shadow-md p-6 lg:col-span-1 transition-all duration-300 ${chatFullscreen ? "fixed inset-0 z-50 flex flex-col justify-center items-center bg-black bg-opacity-40" : ""}`} style={chatFullscreen ? { maxWidth: "100vw", maxHeight: "100vh" } : {}}>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-gray-800">Chat</h2>
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => setChatFullscreen((f) => !f)}
-                    className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600"
-                    title={chatFullscreen ? "Exit Fullscreen" : "Fullscreen"}
-                  >
+                  <button onClick={() => setChatFullscreen((f) => !f)} className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600" title={chatFullscreen ? "Exit Fullscreen" : "Fullscreen"}>
                     {chatFullscreen ? <FaCompress /> : <FaExpand />}
                   </button>
-                  <button
-                    onClick={() => setShowChat(false)}
-                    className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600"
-                    title="Close Chat"
-                  >
-                    ✕
-                  </button>
+                  <button onClick={() => setShowChat(false)} className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600" title="Close Chat">✕</button>
                 </div>
               </div>
+
               <div className="h-64 overflow-y-auto border rounded p-3 space-y-2 bg-gray-50">
                 {chatMessages.map((m) => (
                   <div key={m.id} className={`max-w-[80%] ${m.from === "You" ? "ml-auto text-right" : ""}`}>
@@ -435,25 +452,15 @@ export default function ClientDashboard() {
                   </div>
                 ))}
               </div>
+
               <div className="mt-3 flex gap-2">
-                <input
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && sendChat()}
-                  placeholder="Type a message..."
-                  className="flex-1 border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-                <button onClick={sendChat} className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">
-                  Send
-                </button>
+                <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendChat()} placeholder="Type a message..." className="flex-1 border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <button onClick={sendChat} className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">Send</button>
               </div>
             </section>
           )}
 
-          
-          <section
-            className={`bg-white rounded-xl shadow-md p-6 ${showChat ? "lg:col-span-2" : "lg:col-span-2"} transition-all duration-300`}
-          >
+          <section className={`bg-white rounded-xl shadow-md p-6 ${showChat ? "lg:col-span-2" : "lg:col-span-2"} transition-all duration-300`}>
             <h2 className="text-xl font-bold text-gray-800 mb-4">Task Progress</h2>
             <div className="space-y-3">
               {["todo", "progress", "done"].map((status) => (

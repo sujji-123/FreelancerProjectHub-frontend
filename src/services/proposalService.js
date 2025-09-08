@@ -1,8 +1,14 @@
 // src/services/proposalService.js
-import api from './api';
+import api from "./api";
 
-// freelancer applies to a project
-export const createProposal = (payload) => api.post('/proposals', payload);
+// Freelancer submits proposal
+export const createProposal = (payload) => api.post("/proposals", payload);
 
-// list proposals (optional, for client review pages later)
-export const getProposals = () => api.get('/proposals');
+// Client fetches proposals for their projects
+export const getClientProposals = () => api.get("/proposals/client");
+
+// Client accepts / rejects proposals
+export const acceptProposal = (id) => api.patch(`/proposals/${id}/accept`);
+export const rejectProposal = (id) => api.patch(`/proposals/${id}/reject`);
+
+export default { createProposal, getClientProposals, acceptProposal, rejectProposal };
