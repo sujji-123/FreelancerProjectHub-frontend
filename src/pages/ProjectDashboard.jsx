@@ -1,20 +1,75 @@
-// src/Pages/ProjectDashboard.jsx
-import React from "react";
-import ProjectCollab from "./ProjectCollab";
+// src/pages/ProjectDashboard.jsx
+import React, { useEffect, useState } from "react";
+import ProjectCard from "../components/Projects/ProjectCard";
+import projectService from "../services/projectService";
+import proposalService from "../services/proposalService";
+import { toast } from "react-toastify";
 
 export default function ProjectDashboard() {
-  // ⛔ Ignore useParams and localStorage for now
-  // const { id } = useParams();
-  // const user = JSON.parse(localStorage.getItem("user"));
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  // ✅ Hardcoded values for testing
-  const projectId = "64f12ab45d6c8e90f7d12c34"; // replace with a real project _id from MongoDB
-  const userId = "64f12ab45d6c8e90f7d12c77";   // replace with a real user _id from MongoDB
+  // read current user
+  const readUser = () => {
+    try {
+      const u = localStorage.getItem("user");
+      if (u) return JSON.parse(u);
+    } catch (err) {
+      // ignore
+    }
+    return null;
+  };
+  const user = readUser();
+
+  const fetchProjects = async () => {
+    setLoading(true);
+    try {
+      const res = await projectService.getProjects();
+      setProjects(res.data || []);
+    } catch (err) {
+      console.error("fetchProjects:", err);
+      toast.error("Failed to load projects");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  const handleApply = async (projectId) => {
+    try {
+      // payload minimal; you can extend coverLetter/bidAmount UI later
+      const payload = { projectId, coverLetter: "", bidAmount: 0 };
+      const res = await proposalService.createProposal(payload);
+      toast.success("Proposal sent!");
+      // Optionally refresh projects or UI
+    } catch (err) {
+      console.error("apply err:", err);
+      toast.error(err?.response?.data?.msg || "Failed to apply");
+    }
+  };
 
   return (
-    <div className="p-4">
-      <h1 className="text-xl font-bold mb-4">Project Collaboration</h1>
-      <ProjectCollab projectId={projectId} userId={userId} />
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Marketplace — Open Projects</h1>
+      {loading ? (
+        <div>Loading projects…</div>
+      ) : projects.length === 0 ? (
+        <div>No open projects yet</div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {projects.map((project) => (
+            <ProjectCard
+              key={project._id}
+              project={project}
+              user={user}
+              onApply={() => handleApply(project._id)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
