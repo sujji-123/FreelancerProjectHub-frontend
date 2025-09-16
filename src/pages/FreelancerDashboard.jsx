@@ -1,15 +1,17 @@
 // src/pages/FreelancerDashboard.jsx
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { jwtDecode } from 'jwt-decode'; // ✅ CORRECTED: Use a named import
+import { jwtDecode } from 'jwt-decode';
 import {
   FaUserCircle, FaCog, FaSignOutAlt, FaSearch, FaBell, FaStar,
   FaShoppingBag, FaClipboardList, FaFileContract, FaEnvelope, FaMoneyBill,
-  FaCheckCircle, FaSpinner, FaCircle
+  FaEdit
 } from 'react-icons/fa';
 import { getProjects } from '../services/projectService';
 import { getFreelancerProposals } from '../services/proposalService';
+import userService from '../services/userService';
 import { toast } from 'react-toastify';
+import EditProfileModal from '../components/Profile/EditProfileModal';
 
 const readUser = () => {
   try {
@@ -19,8 +21,9 @@ const readUser = () => {
   try {
     const token = localStorage.getItem('token');
     if (token) {
-      const dec = jwtDecode(token); // This function call now works correctly
-      return dec.user || { name: dec.name, email: dec.email, role: dec.role };
+      const dec = jwtDecode(token);
+      // The user object from the token payload might be nested under 'user'
+      return dec.user || { id: dec.id, name: dec.name, email: dec.email, role: dec.role };
     }
   } catch { /* intentionally ignored */ }
   return null;
@@ -35,6 +38,8 @@ export default function FreelancerDashboard() {
   const [projects, setProjects] = useState([]);
   const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Memoized values for notifications and derived data
   const notifications = useMemo(() => [
@@ -57,14 +62,19 @@ export default function FreelancerDashboard() {
       return;
     }
 
-    // Fetch data from backend
+    // Fetch all data from backend
     const fetchData = async () => {
       try {
-        const projectRes = await getProjects();
-        setProjects(projectRes.data || []);
+        const [projectRes, proposalRes, profileRes] = await Promise.all([
+          getProjects(),
+          getFreelancerProposals(),
+          userService.getProfile(),
+        ]);
 
-        const proposalRes = await getFreelancerProposals();
+        setProjects(projectRes.data || []);
         setProposals(proposalRes.data || []);
+        setProfile(profileRes.data || null);
+
       } catch (error) {
         toast.error('Failed to load dashboard data.');
         console.error("Dashboard fetch error:", error);
@@ -83,15 +93,29 @@ export default function FreelancerDashboard() {
     navigate('/login');
   };
 
-  const statusIcon = (s) => s === 'done' ? <FaCheckCircle className="text-green-500"/> :
-    s === 'progress' ? <FaSpinner className="text-blue-500 animate-spin"/> : <FaCircle className="text-gray-400"/>;
+  const handleProfileUpdate = (updatedProfile) => {
+    setProfile(updatedProfile);
+  };
   
   if (loading) {
     return <div className='flex justify-center items-center min-h-screen'>Loading Dashboard...</div>;
   }
 
+  // Calculate stats based on fetched data
+  const activeProjects = projects.filter(p => p.assignedFreelancer?._id === user.id && p.status === 'in-progress');
+  const totalEarnings = proposals
+    .filter(p => p.status === 'accepted')
+    .reduce((sum, p) => sum + p.bidAmount, 0);
+
   return (
     <div className="min-h-screen flex bg-gray-50">
+      {isEditModalOpen && (
+        <EditProfileModal
+          user={profile}
+          onClose={() => setIsEditModalOpen(false)}
+          onProfileUpdate={handleProfileUpdate}
+        />
+      )}
       <aside className="w-64 bg-white shadow-lg flex flex-col">
         <div className="p-6 text-2xl font-bold text-indigo-600 border-b-2 border-gray-100">FreelancerHub</div>
         <nav className="flex-grow p-4 space-y-2">
@@ -127,7 +151,7 @@ export default function FreelancerDashboard() {
       <main className="flex-1 p-8 overflow-auto">
         <header className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">Welcome, {user?.name || 'Freelancer'}!</h1>
+            <h1 className="text-3xl font-bold text-gray-800">Welcome, {profile?.name || user?.name}!</h1>
             <p className="text-gray-500 mt-2">Find new projects and manage your work.</p>
           </div>
           <div className="flex items-center space-x-4">
@@ -155,25 +179,33 @@ export default function FreelancerDashboard() {
           <div className="lg:col-span-2">
             {/* Profile */}
             <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-              <div className="flex items-center mb-4">
-                <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mr-4">
-                  <span className="text-indigo-700 font-bold text-xl">{(user?.name || 'F').charAt(0)}</span>
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-gray-800">{user?.name || 'Freelancer Name'}</h2>
-                  <p className="text-gray-600">Web Developer</p>
-                  <div className="flex items-center mt-1">
-                    <div className="flex text-yellow-400">
-                      <FaStar /><FaStar /><FaStar /><FaStar /><FaStar className="text-gray-300" />
-                    </div>
-                    <span className="ml-2 text-sm text-gray-500">4.0 (12 reviews)</span>
+              <div className="flex justify-between items-start">
+                  <div className="flex items-center mb-4">
+                      <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mr-4">
+                          <span className="text-indigo-700 font-bold text-xl">{(profile?.name || 'F').charAt(0)}</span>
+                      </div>
+                      <div>
+                          <h2 className="text-xl font-bold text-gray-800">{profile?.name || 'Freelancer Name'}</h2>
+                          <p className="text-gray-600">{profile?.bio || 'No bio provided. Click edit to add one.'}</p>
+                          <div className="flex items-center mt-1">
+                              <div className="flex text-yellow-400">
+                                  {[...Array(5)].map((_, i) => (
+                                      <FaStar key={i} className={i < (profile?.rating || 0) ? '' : 'text-gray-300'} />
+                                  ))}
+                              </div>
+                              <span className="ml-2 text-sm text-gray-500">{profile?.rating || 0} ({profile?.reviews?.length || 0} reviews)</span>
+                          </div>
+                      </div>
                   </div>
-                </div>
+                  <button onClick={() => setIsEditModalOpen(true)} className="p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-indigo-600">
+                      <FaEdit />
+                  </button>
               </div>
+
               <div className="flex flex-wrap gap-2 mt-4">
-                {['HTML','CSS','JavaScript','React'].map(s => (
+                {profile?.skills?.length > 0 ? profile.skills.map(s => (
                   <span key={s} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">{s}</span>
-                ))}
+                )) : <p className="text-sm text-gray-500">No skills added yet. Click the edit icon to add your skills.</p>}
               </div>
             </div>
 
@@ -215,37 +247,34 @@ export default function FreelancerDashboard() {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Active Projects</span>
-                  <span className="font-bold text-gray-800">3</span>
+                  <span className="font-bold text-gray-800">{activeProjects.length}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Earnings</span>
-                  <span className="font-bold text-gray-800">$4,250</span>
+                  <span className="font-bold text-gray-800">${totalEarnings}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Client Rating</span>
-                  <span className="font-bold text-gray-800">4.8/5</span>
+                  <span className="font-bold text-gray-800">{profile?.rating || 0}/5</span>
                 </div>
               </div>
             </div>
             
-            {/* Active Projects (static for now) */}
+            {/* Active Projects */}
             <div className="bg-white rounded-xl shadow-md p-6">
               <h2 className="text-xl font-bold text-gray-800 mb-4">My Active Projects</h2>
               <div className="space-y-4">
-                {[
-                  {id:'p1', name:'E-commerce Website', badge:'Active', cls:'bg-blue-100 text-blue-700'},
-                  {id:'p2', name:'Mobile App Design', badge:'Review', cls:'bg-yellow-100 text-yellow-700'},
-                ].map(p => (
-                  <div key={p.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <span className="font-medium">{p.name}</span>
+                {activeProjects.length > 0 ? activeProjects.map(p => (
+                  <div key={p._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <span className="font-medium">{p.title}</span>
                     <div className="flex items-center gap-2">
-                      <span className={`px-2 py-1 ${p.cls} rounded-full text-xs`}>{p.badge}</span>
-                      <Link to={`/project/${p.id}`} className="text-blue-600 underline text-xs">
+                      <span className={`px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs`}>Active</span>
+                      <Link to={`/project/${p._id}`} className="text-blue-600 underline text-xs">
                         Open
                       </Link>
                     </div>
                   </div>
-                ))}
+                )) : <p className="text-gray-500">No active projects.</p>}
               </div>
             </div>
           </div>
