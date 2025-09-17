@@ -5,11 +5,13 @@ import { jwtDecode } from 'jwt-decode';
 import {
   FaUserCircle, FaCog, FaSignOutAlt, FaSearch, FaBell, FaStar,
   FaShoppingBag, FaClipboardList, FaFileContract, FaEnvelope, FaMoneyBill,
-  FaCheckCircle, FaSpinner, FaCircle
+  FaCheckCircle, FaSpinner, FaCircle, FaEdit, FaBars
 } from 'react-icons/fa';
 import { getProjects } from '../services/projectService';
-import { getFreelancerProposals } from '../services/proposalService';
+import { getFreelancerProposals, createProposal, withdrawProposal } from '../services/proposalService';
+import { getProfile, uploadProfilePicture } from '../services/userService';
 import { toast } from 'react-toastify';
+import EditProfileModal from '../components/Profile/EditProfileModal';
 
 const readUser = () => {
   try {
@@ -29,15 +31,29 @@ const readUser = () => {
 export default function FreelancerDashboard() {
   const navigate = useNavigate();
   const [user, setUser] = useState(readUser());
+  const [profile, setProfile] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [projects, setProjects] = useState([]);
   const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // Sidebar toggle (for mobile)
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Proposal modal state
+  const [showModal, setShowModal] = useState(false);
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [coverLetter, setCoverLetter] = useState('');
+  const [bidAmount, setBidAmount] = useState('');
 
   // Fetch projects and proposals
   useEffect(() => {
     const fetchData = async () => {
       try {
+        const profileRes = await getProfile();
+        setProfile(profileRes.data);
+
         const projectRes = await getProjects();
         setProjects(projectRes.data || []);
 
@@ -87,7 +103,6 @@ export default function FreelancerDashboard() {
     [projects]
   );
 
-  // Active projects = proposals accepted by client
   const activeProjects = useMemo(
     () =>
       proposals
@@ -97,14 +112,72 @@ export default function FreelancerDashboard() {
     [proposals, projects]
   );
 
+  const handleApplyClick = (project) => {
+    setSelectedProject(project);
+    setCoverLetter('');
+    setBidAmount('');
+    setShowModal(true);
+  };
+
+  const handleSubmitProposal = async () => {
+    if (!coverLetter || !bidAmount) {
+      toast.error("Please fill in both fields.");
+      return;
+    }
+    try {
+      await createProposal({
+        projectId: selectedProject._id,
+        coverLetter,
+        bidAmount: Number(bidAmount)
+      });
+      toast.success("Proposal submitted!");
+      setShowModal(false);
+
+      const res = await getFreelancerProposals();
+      setProposals(res.data || []);
+    } catch (err) {
+      console.error("Proposal submit error:", err);
+      toast.error(err.response?.data?.msg || "Failed to send proposal.");
+    }
+  };
+
+  const handleWithdrawProposal = async (proposalId) => {
+    if (window.confirm('Are you sure you want to withdraw this proposal?')) {
+      try {
+        await withdrawProposal(proposalId);
+        toast.success('Proposal withdrawn');
+        const res = await getFreelancerProposals();
+        setProposals(res.data || []);
+      } catch (err) {
+        toast.error(err.response?.data?.msg || 'Failed to withdraw proposal.');
+      }
+    }
+  };
+
+  const handleProfilePictureChange = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const formData = new FormData();
+      formData.append('profilePicture', file);
+      try {
+        const res = await uploadProfilePicture(formData);
+        setProfile(res.data);
+        toast.success('Profile picture updated!');
+      } catch (err) {
+        toast.error('Failed to upload profile picture.');
+      }
+    }
+  };
+
   if (loading) return <div className="p-8">Loading dashboard...</div>;
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white shadow-lg flex flex-col">
-        <div className="p-6 text-2xl font-bold text-indigo-600 border-b-2 border-gray-100">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-gray-50">
+      {/* Sidebar (responsive) */}
+      <aside className={`fixed lg:static top-0 left-0 h-full w-64 bg-white shadow-lg transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 transition-transform duration-300 z-50`}>
+        <div className="p-6 text-2xl font-bold text-indigo-600 border-b-2 border-gray-100 flex justify-between items-center">
           FreelancerHub
+          <button className="lg:hidden text-gray-600" onClick={() => setSidebarOpen(false)}>✖</button>
         </div>
         <nav className="flex-grow p-4 space-y-2">
           <Link to="/freelancer/dashboard" className="flex items-center px-4 py-2.5 text-gray-700 bg-indigo-100 rounded-lg font-semibold">
@@ -115,6 +188,9 @@ export default function FreelancerDashboard() {
           </Link>
           <Link to="/freelancer/my-proposals" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg">
             <FaClipboardList className="mr-3 h-5 w-5" /> My Proposals
+          </Link>
+          <Link to="/clients" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg">
+            <FaUserCircle className="mr-3 h-5 w-5" /> View Clients
           </Link>
           <Link to="#" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg">
             <FaFileContract className="mr-3 h-5 w-5" /> My Contracts
@@ -137,85 +213,97 @@ export default function FreelancerDashboard() {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 p-8 overflow-auto">
-        <header className="flex justify-between items-center mb-8">
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">
-              Welcome, {user?.name || 'Freelancer'}!
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
+              Welcome, {profile?.name || 'Freelancer'}!
             </h1>
             <p className="text-gray-500 mt-2">Find new projects and manage your work.</p>
           </div>
-          <div className="flex items-center space-x-4">
-            <div className="relative">
+          <div className="flex items-center space-x-4 w-full sm:w-auto">
+            <div className="relative flex-1 sm:flex-none">
               <FaSearch className="absolute left-3 top-3 text-gray-400" />
               <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search projects..."
-                className="pl-10 pr-4 py-2 border rounded-lg w-96"
+                className="pl-10 pr-4 py-2 border rounded-lg w-full sm:w-96"
               />
             </div>
-            <div className="flex items-center space-x-4">
-              <Link to="/notifications" className="flex items-center text-gray-600 hover:text-gray-800">
-                <FaBell />
-              </Link>
-            </div>
+            <button className="lg:hidden p-2 bg-indigo-100 rounded-lg" onClick={() => setSidebarOpen(true)}>
+              <FaBars />
+            </button>
+            <Link to="/notifications" className="hidden sm:flex items-center text-gray-600 hover:text-gray-800">
+              <FaBell />
+            </Link>
           </div>
         </header>
 
-        <div className="grid grid-cols-12 gap-6">
-          <div className="col-span-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-8 space-y-6">
             {/* Profile card */}
-            <div className="bg-white rounded-xl shadow-md p-6 mb-6 flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center mr-4 text-indigo-600 font-bold text-xl">
-                  {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+            <div className="bg-white rounded-xl shadow-md p-6 flex flex-col sm:flex-row items-center sm:justify-between gap-6">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xl relative">
+                  <label htmlFor="profile-picture-upload" className="cursor-pointer">
+                    {profile?.profilePicture ? (
+                      <img src={`http://localhost:5001/${profile.profilePicture}`} alt="Profile" className="w-16 h-16 rounded-full object-cover" />
+                    ) : (
+                      <span>{profile?.name ? profile.name.charAt(0).toUpperCase() : 'U'}</span>
+                    )}
+                  </label>
+                  <input type="file" id="profile-picture-upload" className="hidden" onChange={handleProfilePictureChange} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-800">{user?.name}</h3>
-                  <div className="flex items-center space-x-2 text-sm text-gray-500">
+                  <h3 className="text-lg font-semibold text-gray-800">{profile?.name}</h3>
+                  <div className="flex flex-wrap items-center space-x-2 text-sm text-gray-500">
                     <span>Web Developer</span>
-                    <span className="flex items-center text-yellow-400"><FaStar className="mr-1" />4.0</span>
-                    <span>(12 reviews)</span>
+                    <span className="flex items-center text-yellow-400"><FaStar className="mr-1" />{profile?.rating || 0}/5</span>
+                    <span>({profile?.reviews?.length || 0} reviews)</span>
                   </div>
-                  <div className="mt-3">
-                    {/* TODO: Replace with dynamic skills from profile */}
-                    <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">HTML</span>
-                    <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">CSS</span>
-                    <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">JavaScript</span>
-                    <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">React</span>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {profile?.skills.map(skill => (
+                      <span key={skill} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">{skill}</span>
+                    ))}
                   </div>
                 </div>
               </div>
-              <div className="text-right">
+              <div className="text-center sm:text-right">
                 <div className="text-gray-500">Earnings</div>
                 <div className="text-xl font-bold">$4,250</div>
+                <button onClick={() => setIsEditModalOpen(true)} className="mt-2 flex items-center justify-center sm:justify-end text-indigo-600 hover:underline">
+                  <FaEdit className="mr-1" /> Edit Profile
+                </button>
               </div>
             </div>
 
             {/* Job Recommendations */}
-            <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+            <div className="bg-white rounded-xl shadow-md p-6">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-gray-800">Job Recommendations</h2>
+                <h2 className="text-lg sm:text-xl font-bold text-gray-800">Job Recommendations</h2>
                 <Link to="/freelancer/projects" className='text-sm text-indigo-600 hover:underline'>View All</Link>
               </div>
               <div className="space-y-4">
                 {openProjects.length > 0 ? openProjects.map(project => (
                   <div key={project._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md">
-                    <div className="flex justify-between items-start mb-2">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
                       <h3 className="font-semibold text-gray-800">{project.title}</h3>
                       <span className="font-bold text-indigo-600">${project.budget}</span>
                     </div>
-                    <p className="text-sm text-gray-600 mb-3 truncate">
-                      {project.description}
-                    </p>
+                    <p className="text-sm text-gray-600 mb-3 truncate">{project.description}</p>
                     {(() => {
                       const myProposal = proposals.find(pr =>
                         String(pr.project && (pr.project._id || pr.project)) === String(project._id)
                       );
                       if (myProposal) {
                         if (myProposal.status === "pending") {
-                          return (<button disabled className="w-full bg-gray-300 text-gray-700 py-2 rounded-lg font-medium">Proposal Sent</button>);
+                          return (
+                            <div className="flex flex-col sm:flex-row gap-2">
+                              <button disabled className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg font-medium">Proposal Sent</button>
+                              <button onClick={() => handleWithdrawProposal(myProposal._id)} className="bg-red-500 text-white px-4 py-2 rounded-lg">Withdraw</button>
+                            </div>
+                          );
                         }
                         if (myProposal.status === "accepted") {
                           return (<button disabled className="w-full bg-green-100 text-green-700 py-2 rounded-lg font-medium">Accepted ✅</button>);
@@ -225,7 +313,14 @@ export default function FreelancerDashboard() {
                         }
                         return (<button disabled className="w-full bg-gray-300 text-gray-700 py-2 rounded-lg font-medium">{myProposal.status}</button>);
                       }
-                      return (<Link to={`/project/${project._id}`} className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 font-medium">View & Apply</Link>);
+                      return (
+                        <button
+                          onClick={() => handleApplyClick(project)}
+                          className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 font-medium"
+                        >
+                          Apply Now
+                        </button>
+                      );
                     })()}
                   </div>
                 )) : (
@@ -236,27 +331,26 @@ export default function FreelancerDashboard() {
           </div>
 
           {/* Sidebar Stats */}
-          <aside className="col-span-4 space-y-6">
+          <aside className="lg:col-span-4 space-y-6">
             <div className="bg-white rounded-xl shadow-md p-6">
               <h4 className="font-semibold text-lg">Your Stats</h4>
               <div className="mt-4 text-sm text-gray-600 space-y-3">
                 <div className="flex justify-between"><span>Proposals Sent</span><strong>{proposals.length}</strong></div>
                 <div className="flex justify-between"><span>Active Projects</span><strong>{activeProjects.length}</strong></div>
                 <div className="flex justify-between"><span>Earnings</span><strong>$4,250</strong></div>
-                <div className="flex justify-between"><span>Client Rating</span><strong>4.8/5</strong></div>
+                <div className="flex justify-between"><span>Client Rating</span><strong>{profile?.rating || 0}/5</strong></div>
               </div>
             </div>
 
-            {/* My Active Projects (moved here) */}
             <div className="bg-white rounded-xl shadow-md p-6">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-gray-800">My Active Projects</h2>
+                <h2 className="text-lg sm:text-xl font-bold text-gray-800">My Active Projects</h2>
                 <Link to="/freelancer/my-projects" className="text-sm text-indigo-600 hover:underline">View All</Link>
               </div>
               <div className="space-y-4">
                 {activeProjects.length > 0 ? activeProjects.map(project => (
                   <div key={project._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md">
-                    <div className="flex justify-between items-start mb-2">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
                       <h3 className="font-semibold text-gray-800">{project.title}</h3>
                       <span className="font-bold text-indigo-600">${project.budget}</span>
                     </div>
@@ -273,6 +367,44 @@ export default function FreelancerDashboard() {
           </aside>
         </div>
       </main>
+
+      {/* Proposal Modal */}
+      {showModal && selectedProject && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4">
+          <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-lg">
+            <h2 className="text-xl font-bold mb-4">Submit Proposal</h2>
+            <p className="mb-2 text-gray-600">Project: {selectedProject.title}</p>
+            <textarea
+              placeholder="Write a cover letter..."
+              value={coverLetter}
+              onChange={(e) => setCoverLetter(e.target.value)}
+              className="w-full border rounded-lg p-3 mb-4"
+              rows={4}
+            />
+            <input
+              type="number"
+              placeholder="Your bid amount"
+              value={bidAmount}
+              onChange={(e) => setBidAmount(e.target.value)}
+              className="w-full border rounded-lg p-3 mb-4"
+            />
+            <div className="flex flex-col sm:flex-row justify-end gap-3">
+              <button onClick={() => setShowModal(false)} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button>
+              <button onClick={handleSubmitProposal} className="px-4 py-2 bg-indigo-600 text-white rounded-lg">Submit</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isEditModalOpen && (
+        <EditProfileModal
+          user={profile}
+          onClose={() => setIsEditModalOpen(false)}
+          onProfileUpdate={(updatedProfile) => {
+            setProfile(updatedProfile);
+          }}
+        />
+      )}
     </div>
   );
 }

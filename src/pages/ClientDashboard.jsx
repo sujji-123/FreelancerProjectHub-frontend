@@ -1,4 +1,4 @@
-// src/pages/client/ClientDashboard.jsx
+// src/pages/ClientDashboard.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
@@ -20,11 +20,15 @@ import {
   FaComments,
   FaExpand,
   FaCompress,
+  FaEdit
 } from "react-icons/fa";
 
 import projectService from "../services/projectService";
 import proposalService from "../services/proposalService";
 import notificationService from "../services/notificationService";
+import { getProfile, uploadProfilePicture } from "../services/userService";
+import EditProfileModal from "../components/Profile/EditProfileModal";
+import { toast } from "react-toastify";
 
 const readUser = () => {
   try {
@@ -48,9 +52,12 @@ const readUser = () => {
 export default function ClientDashboard() {
   const navigate = useNavigate();
   const [user, setUser] = useState(readUser());
+  const [profile, setProfile] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("open"); // can be "all", "open", "in-progress", "completed"
   const [activeProposalTab, setActiveProposalTab] = useState("pending");
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // data from server
   const [projects, setProjects] = useState([]);
@@ -96,6 +103,21 @@ export default function ClientDashboard() {
     navigate("/login");
   };
 
+  const handleProfilePictureChange = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const formData = new FormData();
+        formData.append('profilePicture', file);
+        try {
+            const res = await uploadProfilePicture(formData);
+            setProfile(res.data);
+            toast.success('Profile picture updated!');
+        } catch (err) {
+            toast.error('Failed to upload profile picture.');
+        }
+    }
+  };
+
   // fetch projects (client's projects)
   const loadProjects = async () => {
     try {
@@ -128,6 +150,11 @@ export default function ClientDashboard() {
 
   useEffect(() => {
     // initial load
+    const loadProfile = async () => {
+        const res = await getProfile();
+        setProfile(res.data);
+    }
+    loadProfile();
     loadProjects();
     loadProposals();
     loadNotifications();
@@ -199,26 +226,43 @@ export default function ClientDashboard() {
 
   return (
     <div className="min-h-screen flex bg-gray-50">
-      {/* Sidebar (same as before) */}
-      <aside className="w-64 bg-white border-r hidden md:flex flex-col">
+      {/* Mobile menu button */}
+      <button 
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-indigo-600 text-white rounded-md shadow-lg"
+      >
+        {isSidebarOpen ? '✕' : '☰'}
+      </button>
+
+      {/* Sidebar */}
+      <aside className={`w-64 bg-white border-r flex flex-col fixed md:relative inset-y-0 left-0 z-40 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 transition-transform duration-300 ease-in-out`}>
         <div className="px-6 py-5 flex items-center gap-3 border-b">
           <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
-            <FaBriefcase className="text-indigo-600" />
+            <label htmlFor="profile-picture-upload" className="cursor-pointer">
+                {profile?.profilePicture ? (
+                    <img src={`http://localhost:5001/${profile.profilePicture}`} alt="Profile" className="w-10 h-10 rounded-full object-cover" />
+                ) : (
+                    <FaBriefcase className="text-indigo-600" />
+                )}
+            </label>
+            <input type="file" id="profile-picture-upload" className="hidden" onChange={handleProfilePictureChange} />
           </div>
           <div>
             <p className="font-semibold text-gray-800">Client Panel</p>
-            <p className="text-xs text-gray-500">{user?.email || "client@demo.com"}</p>
+            <p className="text-xs text-gray-500">{profile?.email || "client@demo.com"}</p>
           </div>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           <Link className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700" to="/client/dashboard">
             <FaInbox /> Dashboard
           </Link>
           <Link className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700" to="/client/new-project">
             <FaPlusSquare /> Post New Project
           </Link>
-
+          <Link to="/freelancers" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700">
+            <FaUserCircle /> View Freelancers
+          </Link>
           <div className="mt-4">
             <p className="px-3 text-xs uppercase tracking-wide text-gray-400 mb-2">My Projects</p>
 
@@ -260,31 +304,42 @@ export default function ClientDashboard() {
           </Link>
         </nav>
 
-        <div className="p-4 border-t flex items-center justify-between text-gray-600">
+        <div className="p-4 border-t flex flex-col md:flex-row md:items-center md:justify-between text-gray-600 space-y-2 md:space-y-0">
           <Link to="/client/settings" className="flex items-center gap-2 hover:text-gray-800">
             <FaCog /> Settings
           </Link>
+           <button onClick={() => setIsEditModalOpen(true)} className="flex items-center gap-2 hover:text-gray-800">
+             <FaEdit /> Edit Profile
+           </button>
           <button onClick={handleLogout} className="flex items-center gap-2 hover:text-red-600">
             <FaSignOutAlt /> Logout
           </button>
         </div>
       </aside>
 
+      {/* Overlay for mobile sidebar */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        ></div>
+      )}
+
       {/* Main */}
-      <main className="flex-1 p-6 md:p-8 overflow-auto">
-        <header className="flex items-center justify-between mb-8">
+      <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
+        <header className="flex flex-col md:flex-row md:items-center justify-between mb-6 md:mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">Welcome, {user?.name || "Client"}!</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Welcome, {profile?.name || "Client"}!</h1>
             <p className="text-gray-500 mt-2">Manage your projects and proposals effectively.</p>
           </div>
           <div className="flex items-center gap-4">
-            <div className="relative">
+            <div className="relative flex-1 md:flex-none">
               <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search projects..."
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full md:w-64"
               />
             </div>
             <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-full relative">
@@ -301,12 +356,12 @@ export default function ClientDashboard() {
           </div>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
           {/* My Projects */}
-          <section className="bg-white rounded-xl shadow-md p-6">
-            <div className="flex justify-between items-center mb-6">
+          <section className="bg-white rounded-xl shadow-md p-4 md:p-6">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 md:mb-6 gap-2">
               <h2 className="text-xl font-bold text-gray-800">My Projects</h2>
-              <div className="flex space-x-2">
+              <div className="flex flex-wrap gap-2">
                 {["all", "open", "in-progress", "completed"].map((s) => (
                   <button
                     key={s}
@@ -354,10 +409,10 @@ export default function ClientDashboard() {
           </section>
 
           {/* Proposals Review */}
-          <section className="bg-white rounded-xl shadow-md p-6">
-            <div className="flex justify-between items-center mb-6">
+          <section className="bg-white rounded-xl shadow-md p-4 md:p-6">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 md:mb-6 gap-2">
               <h2 className="text-xl font-bold text-gray-800">Proposals Review</h2>
-              <div className="flex space-x-2">
+              <div className="flex flex-wrap gap-2">
                 {["pending", "accepted", "rejected"].map((s) => (
                   <button
                     key={s}
@@ -375,8 +430,8 @@ export default function ClientDashboard() {
             <div className="space-y-4">
               {getProposalsByStatus(activeProposalTab).map((p) => (
                 <div key={p._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md">
-                  <div className="flex justify-between items-start">
-                    <div>
+                  <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
+                    <div className="flex-1">
                       <h3 className="font-semibold text-gray-800">{p.project?.title || "Project"}</h3>
                       <p className="text-sm text-gray-600">Freelancer: {p.freelancer?.name || "Unknown"}</p>
                       <p className="text-sm text-gray-600">Bid: ${p.bidAmount}</p>
@@ -429,9 +484,9 @@ export default function ClientDashboard() {
           </button>
         )}
 
-        <div className={`grid grid-cols-1 lg:grid-cols-${showChat ? "3" : "2"} gap-8 mt-8`}>
+        <div className={`grid grid-cols-1 ${showChat ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-6 md:gap-8 mt-6 md:mt-8`}>
           {showChat && (
-            <section className={`bg-white rounded-xl shadow-md p-6 lg:col-span-1 transition-all duration-300 ${chatFullscreen ? "fixed inset-0 z-50 flex flex-col justify-center items-center bg-black bg-opacity-40" : ""}`} style={chatFullscreen ? { maxWidth: "100vw", maxHeight: "100vh" } : {}}>
+            <section className={`bg-white rounded-xl shadow-md p-4 md:p-6 lg:col-span-1 transition-all duration-300 ${chatFullscreen ? "fixed inset-0 z-50 flex flex-col justify-center items-center bg-black bg-opacity-40" : ""}`} style={chatFullscreen ? { maxWidth: "100vw", maxHeight: "100vh" } : {}}>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-gray-800">Chat</h2>
                 <div className="flex gap-2">
@@ -460,14 +515,14 @@ export default function ClientDashboard() {
             </section>
           )}
 
-          <section className={`bg-white rounded-xl shadow-md p-6 ${showChat ? "lg:col-span-2" : "lg:col-span-2"} transition-all duration-300`}>
+          <section className={`bg-white rounded-xl shadow-md p-4 md:p-6 ${showChat ? "lg:col-span-2" : "lg:col-span-2"} transition-all duration-300`}>
             <h2 className="text-xl font-bold text-gray-800 mb-4">Task Progress</h2>
             <div className="space-y-3">
               {["todo", "progress", "done"].map((status) => (
                 <div key={status}>
                   <h3 className="font-semibold text-gray-700 capitalize mb-2">{status}</h3>
                   {getTasksByStatus(status).map((task) => (
-                    <div key={task.id} className="flex justify-between items-center p-2 bg-gray-50 rounded mb-2">
+                    <div key={task.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-2 bg-gray-50 rounded mb-2 gap-2">
                       <div className="flex items-center">
                         {getStatusIcon(task.status)}
                         <span className="ml-2 text-sm">{task.title}</span>
@@ -487,6 +542,15 @@ export default function ClientDashboard() {
           </section>
         </div>
       </main>
+        {isEditModalOpen && (
+            <EditProfileModal
+                user={profile}
+                onClose={() => setIsEditModalOpen(false)}
+                onProfileUpdate={(updatedProfile) => {
+                    setProfile(updatedProfile);
+                }}
+            />
+        )}
     </div>
   );
 }
