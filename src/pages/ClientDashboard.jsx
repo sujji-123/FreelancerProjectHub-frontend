@@ -1,4 +1,4 @@
-// src/pages/ClientDashboard.jsx
+// ClientDashboard.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
@@ -395,13 +395,15 @@ export default function ClientDashboard() {
                   </div>
                   <div className="mt-2 text-sm text-gray-600">Budget: ${project.budget}</div>
                   <div className="flex justify-between items-center mt-3">
-                    <span className="text-sm text-gray-500">{/* count proposals from proposals array */}{proposals.filter(pr => String(pr.project._id) === String(project._id)).length} proposals</span>
-                    <Link
-                      to={`/project/${project._id}`}
-                      className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
-                    >
-                      Open Collaboration
-                    </Link>
+                    <span className="text-sm text-gray-500">{proposals.filter(pr => String(pr.project._id) === String(project._id)).length} proposals</span>
+                    {project.status === 'in-progress' && (
+                        <Link
+                            to={`/project/collaborate/${project._id}`}
+                            className="text-sm text-green-600 hover:text-green-800 font-medium"
+                        >
+                            Collaborate
+                        </Link>
+                    )}
                   </div>
                 </div>
               ))}

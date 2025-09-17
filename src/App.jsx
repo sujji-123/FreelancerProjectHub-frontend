@@ -19,6 +19,7 @@ import FreelancerProjects from './pages/FreelancerProjects';
 import MyProjects from "./pages/client/MyProjects";
 import ViewClients from './pages/ViewClients';
 import ViewFreelancers from './pages/ViewFreelancers';
+import ProjectCollab from './pages/ProjectCollab'; // Import the new component
 
 function App() {
   return (
@@ -46,6 +47,7 @@ function App() {
         <Route path="/client/my-projects" element={<MyProjects />} />
         <Route path="/clients" element={<ViewClients />} />
         <Route path="/freelancers" element={<ViewFreelancers />} />
+        <Route path="/project/collaborate/:projectId" element={<ProjectCollab />} />
       </Routes>
     </Router>
   );

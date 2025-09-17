@@ -7,3 +7,4 @@ export const deleteProject = (id) => api.delete(`/projects/${id}`);
 export const updateProject = (id, data) => api.put(`/projects/${id}`, data);
 
 export default { createProject, getProjects, getMyProjects, deleteProject, updateProject };
+// src/services/projectService.js

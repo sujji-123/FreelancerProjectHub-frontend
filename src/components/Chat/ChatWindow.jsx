@@ -34,3 +34,4 @@ export default function ChatWindow() {
         </div>
     );
 }
+// src/components/Chat/ChatWindow.jsx
