@@ -90,14 +90,6 @@ export default function FreelancerDashboard() {
     navigate('/login');
   };
 
-  const statusIcon = (s) => {
-    if (!s) return <FaCircle className="text-gray-400" />;
-    if (s === 'open') return <FaCircle className="text-green-400" />;
-    if (s === 'in-progress') return <FaSpinner className="text-yellow-500" />;
-    if (s === 'completed') return <FaCheckCircle className="text-indigo-600" />;
-    return <FaCircle className="text-gray-400" />;
-  };
-
   const openProjects = useMemo(
     () => projects.filter(p => p.status === 'open').slice(0, 3),
     [projects]
@@ -192,7 +184,8 @@ export default function FreelancerDashboard() {
           <Link to="/clients" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg">
             <FaUserCircle className="mr-3 h-5 w-5" /> View Clients
           </Link>
-          <Link to="#" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg">
+          {/* ✅ FIX: Corrected link to point to the page for accepted proposals */}
+          <Link to="/freelancer/accepted-proposals" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg">
             <FaFileContract className="mr-3 h-5 w-5" /> My Contracts
           </Link>
           <Link to="#" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg">
@@ -345,7 +338,7 @@ export default function FreelancerDashboard() {
             <div className="bg-white rounded-xl shadow-md p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg sm:text-xl font-bold text-gray-800">My Active Projects</h2>
-                <Link to="/freelancer/my-projects" className="text-sm text-indigo-600 hover:underline">View All</Link>
+                <Link to="/freelancer/accepted-proposals" className="text-sm text-indigo-600 hover:underline">View All</Link>
               </div>
               <div className="space-y-4">
                 {activeProjects.length > 0 ? activeProjects.map(project => (
@@ -355,9 +348,13 @@ export default function FreelancerDashboard() {
                       <span className="font-bold text-indigo-600">${project.budget}</span>
                     </div>
                     <p className="text-sm text-gray-600 mb-3 truncate">{project.description}</p>
-                    <span className="inline-block bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
-                      In Progress
-                    </span>
+                    {/* ✅ FIX: Added the Collaborate button back */}
+                    <Link
+                        to={`/project/collaborate/${project._id}`}
+                        className="mt-3 inline-block bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition-colors duration-300 text-center text-sm"
+                    >
+                        Collaborate
+                    </Link>
                   </div>
                 )) : (
                   <p className="text-gray-500">No active projects yet.</p>
