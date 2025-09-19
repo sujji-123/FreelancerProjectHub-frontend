@@ -4,7 +4,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-
 import Signup from './pages/Signup';
 import Verify from './pages/Verify';
 import Login from './pages/Login';
@@ -19,7 +18,9 @@ import FreelancerProjects from './pages/FreelancerProjects';
 import MyProjects from "./pages/client/MyProjects";
 import ViewClients from './pages/ViewClients';
 import ViewFreelancers from './pages/ViewFreelancers';
-import ProjectCollab from './pages/ProjectCollab'; // Import the new component
+import ProjectCollab from './pages/ProjectCollab';
+import ClientPayment from './pages/ClientPayment';       // Import ClientPayment
+import FreelancerEarnings from './pages/FreelancerEarnings'; // Import FreelancerEarnings
 
 function App() {
   return (
@@ -34,20 +35,25 @@ function App() {
         <Route path="/verify" element={<Verify />} />
         <Route path="/login" element={<Login />} />
         <Route path="/dashboard" element={<Dashboard />} />
-
         <Route path="/" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/client/dashboard" element={<ClientDashboard />} />
-        <Route path="/freelancer/dashboard" element={<FreelancerDashboard />} />
+
+        {/* MODIFIED: Nested routing for dashboards */}
+        <Route path="/client/dashboard/*" element={<ClientDashboard />} />
+        <Route path="/freelancer/dashboard/*" element={<FreelancerDashboard />} />
+
         <Route path="/project/:id" element={<ProjectDashboard />} />
-        <Route path="/client/new-project" element={<PostProject />} />
+        <Route path="/client/post-project" element={<PostProject />} />
         <Route path="/freelancer/projects" element={<FreelancerProjects />} />
         <Route path="/client/my-projects" element={<MyProjects />} />
         <Route path="/clients" element={<ViewClients />} />
         <Route path="/freelancers" element={<ViewFreelancers />} />
         <Route path="/project/collaborate/:projectId" element={<ProjectCollab />} />
+        
+        {/* The direct routes to payment pages are now handled within the dashboard routes */}
+        <Route path="/client/payment" element={<ClientDashboard />} />
+        <Route path="/freelancer/earnings" element={<FreelancerDashboard />} />
       </Routes>
     </Router>
   );

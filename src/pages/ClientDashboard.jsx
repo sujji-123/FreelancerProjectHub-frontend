@@ -1,6 +1,7 @@
-// ClientDashboard.jsx
+// src/pages/ClientDashboard.jsx
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+// ADDED: Import Routes and Route for nesting
+import { useNavigate, Link, Routes, Route } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import {
   FaUserCircle,
@@ -29,6 +30,9 @@ import notificationService from "../services/notificationService";
 import { getProfile, uploadProfilePicture } from "../services/userService";
 import EditProfileModal from "../components/Profile/EditProfileModal";
 import { toast } from "react-toastify";
+
+// ADDED: Import the component to be rendered
+import ClientPayment from "./ClientPayment";
 
 const readUser = () => {
   try {
@@ -223,6 +227,185 @@ export default function ClientDashboard() {
     setChatMessages((m) => [...m, { id: Date.now(), from: "You", text: txt }]);
     setChatInput("");
   };
+  
+  // ADDED: A dashboard home component to avoid rendering the payment page by default
+  const DashboardHome = () => (
+    <>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+            {/* My Projects */}
+            <section className="bg-white rounded-xl shadow-md p-4 md:p-6">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 md:mb-6 gap-2">
+                <h2 className="text-xl font-bold text-gray-800">My Projects</h2>
+                <div className="flex flex-wrap gap-2">
+                {["all", "open", "in-progress", "completed"].map((s) => (
+                    <button
+                    key={s}
+                    onClick={() => setActiveTab(s)}
+                    className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        activeTab === s ? "bg-indigo-100 text-indigo-700" : "bg-gray-100 text-gray-600"
+                    }`}
+                    >
+                    {s[0].toUpperCase() + s.slice(1)}
+                    </button>
+                ))}
+                </div>
+            </div>
+
+            <div className="space-y-4">
+                {getProjectsByStatus(activeTab).map((project) => (
+                <div key={project._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md">
+                    <div className="flex justify-between items-start">
+                    <h3 className="font-semibold text-gray-800">{project.title}</h3>
+                    <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        project.status === "open"
+                            ? "bg-blue-100 text-blue-800"
+                            : project.status === "in-progress"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-green-100 text-green-800"
+                        }`}
+                    >
+                        {project.status}
+                    </span>
+                    </div>
+                    <div className="mt-2 text-sm text-gray-600">Budget: ${project.budget}</div>
+                    <div className="flex justify-between items-center mt-3">
+                    <span className="text-sm text-gray-500">{proposals.filter(pr => String(pr.project._id) === String(project._id)).length} proposals</span>
+                    {project.status === 'in-progress' && (
+                        <Link
+                            to={`/project/collaborate/${project._id}`}
+                            className="text-sm text-green-600 hover:text-green-800 font-medium"
+                        >
+                            Collaborate
+                        </Link>
+                    )}
+                    </div>
+                </div>
+                ))}
+            </div>
+            </section>
+
+            {/* Proposals Review */}
+            <section className="bg-white rounded-xl shadow-md p-4 md:p-6">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 md:mb-6 gap-2">
+                <h2 className="text-xl font-bold text-gray-800">Proposals Review</h2>
+                <div className="flex flex-wrap gap-2">
+                {["pending", "accepted", "rejected"].map((s) => (
+                    <button
+                    key={s}
+                    onClick={() => setActiveProposalTab(s)}
+                    className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        activeProposalTab === s ? "bg-indigo-100 text-indigo-700" : "bg-gray-100 text-gray-600"
+                    }`}
+                    >
+                    {s[0].toUpperCase() + s.slice(1)}
+                    </button>
+                ))}
+                </div>
+            </div>
+
+            <div className="space-y-4">
+                {getProposalsByStatus(activeProposalTab).map((p) => (
+                <div key={p._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md">
+                    <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
+                    <div className="flex-1">
+                        <h3 className="font-semibold text-gray-800">{p.project?.title || "Project"}</h3>
+                        <p className="text-sm text-gray-600">Freelancer: {p.freelancer?.name || "Unknown"}</p>
+                        <p className="text-sm text-gray-600">Bid: ${p.bidAmount}</p>
+                        <span
+                        className={`inline-block mt-2 px-2 py-1 rounded-full text-xs font-medium ${
+                            p.status === "pending"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : p.status === "accepted"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                        >
+                        {p.status}
+                        </span>
+                    </div>
+
+                    {p.status === "pending" ? (
+                        <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => acceptProposal(p._id)}
+                            className="px-3 py-1 rounded bg-emerald-500 text-white hover:bg-emerald-600"
+                        >
+                            Accept
+                        </button>
+                        <button
+                            onClick={() => rejectProposal(p._id)}
+                            className="px-3 py-1 rounded bg-rose-500 text-white hover:bg-rose-600"
+                        >
+                            Reject
+                        </button>
+                        </div>
+                    ) : null}
+                    </div>
+                </div>
+                ))}
+            </div>
+            </section>
+        </div>
+        <div className={`grid grid-cols-1 ${showChat ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-6 md:gap-8 mt-6 md:mt-8`}>
+        {showChat && (
+            <section className={`bg-white rounded-xl shadow-md p-4 md:p-6 lg:col-span-1 transition-all duration-300 ${chatFullscreen ? "fixed inset-0 z-50 flex flex-col justify-center items-center bg-black bg-opacity-40" : ""}`} style={chatFullscreen ? { maxWidth: "100vw", maxHeight: "100vh" } : {}}>
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-800">Chat</h2>
+                <div className="flex gap-2">
+                <button onClick={() => setChatFullscreen((f) => !f)} className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600" title={chatFullscreen ? "Exit Fullscreen" : "Fullscreen"}>
+                    {chatFullscreen ? <FaCompress /> : <FaExpand />}
+                </button>
+                <button onClick={() => setShowChat(false)} className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600" title="Close Chat">✕</button>
+                </div>
+            </div>
+
+            <div className="h-64 overflow-y-auto border rounded p-3 space-y-2 bg-gray-50">
+                {chatMessages.map((m) => (
+                <div key={m.id} className={`max-w-[80%] ${m.from === "You" ? "ml-auto text-right" : ""}`}>
+                    <p className={`inline-block px-3 py-2 rounded-lg ${m.from === "You" ? "bg-indigo-100" : "bg-gray-100"}`}>
+                    <span className="block text-xs text-gray-500">{m.from}</span>
+                    <span className="text-gray-800">{m.text}</span>
+                    </p>
+                </div>
+                ))}
+            </div>
+
+            <div className="mt-3 flex gap-2">
+                <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendChat()} placeholder="Type a message..." className="flex-1 border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <button onClick={sendChat} className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">Send</button>
+            </div>
+            </section>
+        )}
+
+        <section className={`bg-white rounded-xl shadow-md p-4 md:p-6 ${showChat ? "lg:col-span-2" : "lg:col-span-2"} transition-all duration-300`}>
+            <h2 className="text-xl font-bold text-gray-800 mb-4">Task Progress</h2>
+            <div className="space-y-3">
+            {["todo", "progress", "done"].map((status) => (
+                <div key={status}>
+                <h3 className="font-semibold text-gray-700 capitalize mb-2">{status}</h3>
+                {getTasksByStatus(status).map((task) => (
+                    <div key={task.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-2 bg-gray-50 rounded mb-2 gap-2">
+                    <div className="flex items-center">
+                        {getStatusIcon(task.status)}
+                        <span className="ml-2 text-sm">{task.title}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                        {getPriorityBadge(task.priority)}
+                        <span className="text-gray-500">
+                        {task.comments} <FaComment className="inline" />
+                        </span>
+                        <span className="text-gray-400">{task.dueDate}</span>
+                    </div>
+                    </div>
+                ))}
+                </div>
+            ))}
+            </div>
+        </section>
+        </div>
+    </>
+  );
 
   return (
     <div className="min-h-screen flex bg-gray-50">
@@ -299,7 +482,8 @@ export default function ClientDashboard() {
           <Link className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700" to="/client/messages">
             <FaUserCircle /> Messages
           </Link>
-          <Link className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700" to="/client/payments">
+          {/* MODIFIED: Corrected link path */}
+          <Link className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700" to="/client/dashboard/payment">
             <FaMoneyBill /> Payments
           </Link>
         </nav>
@@ -355,123 +539,13 @@ export default function ClientDashboard() {
             </button>
           </div>
         </header>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
-          {/* My Projects */}
-          <section className="bg-white rounded-xl shadow-md p-4 md:p-6">
-            <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 md:mb-6 gap-2">
-              <h2 className="text-xl font-bold text-gray-800">My Projects</h2>
-              <div className="flex flex-wrap gap-2">
-                {["all", "open", "in-progress", "completed"].map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setActiveTab(s)}
-                    className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      activeTab === s ? "bg-indigo-100 text-indigo-700" : "bg-gray-100 text-gray-600"
-                    }`}
-                  >
-                    {s[0].toUpperCase() + s.slice(1)}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {getProjectsByStatus(activeTab).map((project) => (
-                <div key={project._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md">
-                  <div className="flex justify-between items-start">
-                    <h3 className="font-semibold text-gray-800">{project.title}</h3>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        project.status === "open"
-                          ? "bg-blue-100 text-blue-800"
-                          : project.status === "in-progress"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-green-100 text-green-800"
-                      }`}
-                    >
-                      {project.status}
-                    </span>
-                  </div>
-                  <div className="mt-2 text-sm text-gray-600">Budget: ${project.budget}</div>
-                  <div className="flex justify-between items-center mt-3">
-                    <span className="text-sm text-gray-500">{proposals.filter(pr => String(pr.project._id) === String(project._id)).length} proposals</span>
-                    {project.status === 'in-progress' && (
-                        <Link
-                            to={`/project/collaborate/${project._id}`}
-                            className="text-sm text-green-600 hover:text-green-800 font-medium"
-                        >
-                            Collaborate
-                        </Link>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* Proposals Review */}
-          <section className="bg-white rounded-xl shadow-md p-4 md:p-6">
-            <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 md:mb-6 gap-2">
-              <h2 className="text-xl font-bold text-gray-800">Proposals Review</h2>
-              <div className="flex flex-wrap gap-2">
-                {["pending", "accepted", "rejected"].map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setActiveProposalTab(s)}
-                    className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      activeProposalTab === s ? "bg-indigo-100 text-indigo-700" : "bg-gray-100 text-gray-600"
-                    }`}
-                  >
-                    {s[0].toUpperCase() + s.slice(1)}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {getProposalsByStatus(activeProposalTab).map((p) => (
-                <div key={p._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md">
-                  <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-800">{p.project?.title || "Project"}</h3>
-                      <p className="text-sm text-gray-600">Freelancer: {p.freelancer?.name || "Unknown"}</p>
-                      <p className="text-sm text-gray-600">Bid: ${p.bidAmount}</p>
-                      <span
-                        className={`inline-block mt-2 px-2 py-1 rounded-full text-xs font-medium ${
-                          p.status === "pending"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : p.status === "accepted"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {p.status}
-                      </span>
-                    </div>
-
-                    {p.status === "pending" ? (
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => acceptProposal(p._id)}
-                          className="px-3 py-1 rounded bg-emerald-500 text-white hover:bg-emerald-600"
-                        >
-                          Accept
-                        </button>
-                        <button
-                          onClick={() => rejectProposal(p._id)}
-                          className="px-3 py-1 rounded bg-rose-500 text-white hover:bg-rose-600"
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
+        
+        {/* ADDED: Routes component to render child pages */}
+        <Routes>
+            <Route path="/" element={<DashboardHome />} />
+            <Route path="/payment" element={<ClientPayment />} />
+            {/* You can add more routes here for other sidebar links if needed */}
+        </Routes>
 
         {/* Chat Button */}
         {!showChat && (
@@ -485,64 +559,6 @@ export default function ClientDashboard() {
             <span className="font-semibold hidden sm:inline">Chat</span>
           </button>
         )}
-
-        <div className={`grid grid-cols-1 ${showChat ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-6 md:gap-8 mt-6 md:mt-8`}>
-          {showChat && (
-            <section className={`bg-white rounded-xl shadow-md p-4 md:p-6 lg:col-span-1 transition-all duration-300 ${chatFullscreen ? "fixed inset-0 z-50 flex flex-col justify-center items-center bg-black bg-opacity-40" : ""}`} style={chatFullscreen ? { maxWidth: "100vw", maxHeight: "100vh" } : {}}>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-gray-800">Chat</h2>
-                <div className="flex gap-2">
-                  <button onClick={() => setChatFullscreen((f) => !f)} className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600" title={chatFullscreen ? "Exit Fullscreen" : "Fullscreen"}>
-                    {chatFullscreen ? <FaCompress /> : <FaExpand />}
-                  </button>
-                  <button onClick={() => setShowChat(false)} className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600" title="Close Chat">✕</button>
-                </div>
-              </div>
-
-              <div className="h-64 overflow-y-auto border rounded p-3 space-y-2 bg-gray-50">
-                {chatMessages.map((m) => (
-                  <div key={m.id} className={`max-w-[80%] ${m.from === "You" ? "ml-auto text-right" : ""}`}>
-                    <p className={`inline-block px-3 py-2 rounded-lg ${m.from === "You" ? "bg-indigo-100" : "bg-gray-100"}`}>
-                      <span className="block text-xs text-gray-500">{m.from}</span>
-                      <span className="text-gray-800">{m.text}</span>
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-3 flex gap-2">
-                <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendChat()} placeholder="Type a message..." className="flex-1 border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                <button onClick={sendChat} className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">Send</button>
-              </div>
-            </section>
-          )}
-
-          <section className={`bg-white rounded-xl shadow-md p-4 md:p-6 ${showChat ? "lg:col-span-2" : "lg:col-span-2"} transition-all duration-300`}>
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Task Progress</h2>
-            <div className="space-y-3">
-              {["todo", "progress", "done"].map((status) => (
-                <div key={status}>
-                  <h3 className="font-semibold text-gray-700 capitalize mb-2">{status}</h3>
-                  {getTasksByStatus(status).map((task) => (
-                    <div key={task.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-2 bg-gray-50 rounded mb-2 gap-2">
-                      <div className="flex items-center">
-                        {getStatusIcon(task.status)}
-                        <span className="ml-2 text-sm">{task.title}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs">
-                        {getPriorityBadge(task.priority)}
-                        <span className="text-gray-500">
-                          {task.comments} <FaComment className="inline" />
-                        </span>
-                        <span className="text-gray-400">{task.dueDate}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
       </main>
         {isEditModalOpen && (
             <EditProfileModal

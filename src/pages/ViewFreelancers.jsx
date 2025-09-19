@@ -40,9 +40,11 @@ export default function ViewFreelancers() {
                             <div className="ml-4">
                                 <h2 className="text-lg font-semibold">{freelancer.name}</h2>
                                 <p className="text-gray-500 text-sm">{freelancer.email}</p>
+                                {/* THIS IS THE ADDED LINE */}
+                                <p className="text-xs text-red-500 mt-1">ID: {freelancer._id}</p>
                                 <div className="mt-2">
                                     {freelancer.skills.map(skill => (
-                                        <span className="text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded-full mr-1">{skill}</span>
+                                        <span key={skill} className="text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded-full mr-1">{skill}</span>
                                     ))}
                                 </div>
                             </div>

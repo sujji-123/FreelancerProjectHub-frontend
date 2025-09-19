@@ -1,6 +1,7 @@
 // src/pages/FreelancerDashboard.jsx
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+// ADDED: Import Routes and Route for nesting
+import { useNavigate, Link, Routes, Route } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import {
   FaUserCircle, FaCog, FaSignOutAlt, FaSearch, FaBell, FaStar,
@@ -12,6 +13,9 @@ import { getFreelancerProposals, createProposal, withdrawProposal } from '../ser
 import { getProfile, uploadProfilePicture } from '../services/userService';
 import { toast } from 'react-toastify';
 import EditProfileModal from '../components/Profile/EditProfileModal';
+
+// ADDED: Import the component to be rendered
+import FreelancerEarnings from './FreelancerEarnings';
 
 const readUser = () => {
   try {
@@ -160,6 +164,140 @@ export default function FreelancerDashboard() {
       }
     }
   };
+  
+  // ADDED: A dashboard home component to avoid rendering the earnings page by default
+  const DashboardHome = () => (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-8 space-y-6">
+          {/* Profile card */}
+          <div className="bg-white rounded-xl shadow-md p-6 flex flex-col sm:flex-row items-center sm:justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xl relative">
+                <label htmlFor="profile-picture-upload" className="cursor-pointer">
+                  {profile?.profilePicture ? (
+                    <img src={`http://localhost:5001/${profile.profilePicture}`} alt="Profile" className="w-16 h-16 rounded-full object-cover" />
+                  ) : (
+                    <span>{profile?.name ? profile.name.charAt(0).toUpperCase() : 'U'}</span>
+                  )}
+                </label>
+                <input type="file" id="profile-picture-upload" className="hidden" onChange={handleProfilePictureChange} />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800">{profile?.name}</h3>
+                <div className="flex flex-wrap items-center space-x-2 text-sm text-gray-500">
+                  <span>Web Developer</span>
+                  <span className="flex items-center text-yellow-400"><FaStar className="mr-1" />{profile?.rating || 0}/5</span>
+                  <span>({profile?.reviews?.length || 0} reviews)</span>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {profile?.skills.map(skill => (
+                    <span key={skill} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">{skill}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="text-center sm:text-right">
+              <div className="text-gray-500">Earnings</div>
+              <div className="text-xl font-bold">$4,250</div>
+              <button onClick={() => setIsEditModalOpen(true)} className="mt-2 flex items-center justify-center sm:justify-end text-indigo-600 hover:underline">
+                <FaEdit className="mr-1" /> Edit Profile
+              </button>
+            </div>
+          </div>
+
+          {/* Job Recommendations */}
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-800">Job Recommendations</h2>
+              <Link to="/freelancer/projects" className='text-sm text-indigo-600 hover:underline'>View All</Link>
+            </div>
+            <div className="space-y-4">
+              {openProjects.length > 0 ? openProjects.map(project => (
+                <div key={project._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
+                    <h3 className="font-semibold text-gray-800">{project.title}</h3>
+                    <span className="font-bold text-indigo-600">${project.budget}</span>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-3 truncate">{project.description}</p>
+                  {(() => {
+                    const myProposal = proposals.find(pr =>
+                      String(pr.project && (pr.project._id || pr.project)) === String(project._id)
+                    );
+                    if (myProposal) {
+                      if (myProposal.status === "pending") {
+                        return (
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <button disabled className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg font-medium">Proposal Sent</button>
+                            <button onClick={() => handleWithdrawProposal(myProposal._id)} className="bg-red-500 text-white px-4 py-2 rounded-lg">Withdraw</button>
+                          </div>
+                        );
+                      }
+                      if (myProposal.status === "accepted") {
+                        return (<button disabled className="w-full bg-green-100 text-green-700 py-2 rounded-lg font-medium">Accepted ✅</button>);
+                      }
+                      if (myProposal.status === "rejected") {
+                        return (<button disabled className="w-full bg-red-100 text-red-700 py-2 rounded-lg font-medium">Rejected ❌</button>);
+                      }
+                      return (<button disabled className="w-full bg-gray-300 text-gray-700 py-2 rounded-lg font-medium">{myProposal.status}</button>);
+                    }
+                    return (
+                      <button
+                        onClick={() => handleApplyClick(project)}
+                        className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 font-medium"
+                      >
+                        Apply Now
+                      </button>
+                    );
+                  })()}
+                </div>
+              )) : (
+                <p className="text-gray-500">No open projects available right now.</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar Stats */}
+        <aside className="lg:col-span-4 space-y-6">
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <h4 className="font-semibold text-lg">Your Stats</h4>
+            <div className="mt-4 text-sm text-gray-600 space-y-3">
+              <div className="flex justify-between"><span>Proposals Sent</span><strong>{proposals.length}</strong></div>
+              <div className="flex justify-between"><span>Active Projects</span><strong>{activeProjects.length}</strong></div>
+              <div className="flex justify-between"><span>Earnings</span><strong>$4,250</strong></div>
+              <div className="flex justify-between"><span>Client Rating</span><strong>{profile?.rating || 0}/5</strong></div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-800">My Active Projects</h2>
+              <Link to="/freelancer/accepted-proposals" className="text-sm text-indigo-600 hover:underline">View All</Link>
+            </div>
+            <div className="space-y-4">
+              {activeProjects.length > 0 ? activeProjects.map(project => (
+                <div key={project._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
+                    <h3 className="font-semibold text-gray-800">{project.title}</h3>
+                    <span className="font-bold text-indigo-600">${project.budget}</span>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-3 truncate">{project.description}</p>
+                  {/* ✅ FIX: Added the Collaborate button back */}
+                  <Link
+                      to={`/project/collaborate/${project._id}`}
+                      className="mt-3 inline-block bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition-colors duration-300 text-center text-sm"
+                  >
+                      Collaborate
+                  </Link>
+                </div>
+              )) : (
+                <p className="text-gray-500">No active projects yet.</p>
+              )}
+            </div>
+          </div>
+        </aside>
+      </div>
+  );
 
   if (loading) return <div className="p-8">Loading dashboard...</div>;
 
@@ -191,7 +329,8 @@ export default function FreelancerDashboard() {
           <Link to="#" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg">
             <FaEnvelope className="mr-3 h-5 w-5" /> Messages
           </Link>
-          <Link to="#" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg">
+          {/* MODIFIED: Corrected link path */}
+          <Link to="/freelancer/dashboard/earnings" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg">
             <FaMoneyBill className="mr-3 h-5 w-5" /> Earnings
           </Link>
           <Link to="/freelancer/settings" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg">
@@ -233,136 +372,13 @@ export default function FreelancerDashboard() {
           </div>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-8 space-y-6">
-            {/* Profile card */}
-            <div className="bg-white rounded-xl shadow-md p-6 flex flex-col sm:flex-row items-center sm:justify-between gap-6">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xl relative">
-                  <label htmlFor="profile-picture-upload" className="cursor-pointer">
-                    {profile?.profilePicture ? (
-                      <img src={`http://localhost:5001/${profile.profilePicture}`} alt="Profile" className="w-16 h-16 rounded-full object-cover" />
-                    ) : (
-                      <span>{profile?.name ? profile.name.charAt(0).toUpperCase() : 'U'}</span>
-                    )}
-                  </label>
-                  <input type="file" id="profile-picture-upload" className="hidden" onChange={handleProfilePictureChange} />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-800">{profile?.name}</h3>
-                  <div className="flex flex-wrap items-center space-x-2 text-sm text-gray-500">
-                    <span>Web Developer</span>
-                    <span className="flex items-center text-yellow-400"><FaStar className="mr-1" />{profile?.rating || 0}/5</span>
-                    <span>({profile?.reviews?.length || 0} reviews)</span>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {profile?.skills.map(skill => (
-                      <span key={skill} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">{skill}</span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div className="text-center sm:text-right">
-                <div className="text-gray-500">Earnings</div>
-                <div className="text-xl font-bold">$4,250</div>
-                <button onClick={() => setIsEditModalOpen(true)} className="mt-2 flex items-center justify-center sm:justify-end text-indigo-600 hover:underline">
-                  <FaEdit className="mr-1" /> Edit Profile
-                </button>
-              </div>
-            </div>
-
-            {/* Job Recommendations */}
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg sm:text-xl font-bold text-gray-800">Job Recommendations</h2>
-                <Link to="/freelancer/projects" className='text-sm text-indigo-600 hover:underline'>View All</Link>
-              </div>
-              <div className="space-y-4">
-                {openProjects.length > 0 ? openProjects.map(project => (
-                  <div key={project._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
-                      <h3 className="font-semibold text-gray-800">{project.title}</h3>
-                      <span className="font-bold text-indigo-600">${project.budget}</span>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-3 truncate">{project.description}</p>
-                    {(() => {
-                      const myProposal = proposals.find(pr =>
-                        String(pr.project && (pr.project._id || pr.project)) === String(project._id)
-                      );
-                      if (myProposal) {
-                        if (myProposal.status === "pending") {
-                          return (
-                            <div className="flex flex-col sm:flex-row gap-2">
-                              <button disabled className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg font-medium">Proposal Sent</button>
-                              <button onClick={() => handleWithdrawProposal(myProposal._id)} className="bg-red-500 text-white px-4 py-2 rounded-lg">Withdraw</button>
-                            </div>
-                          );
-                        }
-                        if (myProposal.status === "accepted") {
-                          return (<button disabled className="w-full bg-green-100 text-green-700 py-2 rounded-lg font-medium">Accepted ✅</button>);
-                        }
-                        if (myProposal.status === "rejected") {
-                          return (<button disabled className="w-full bg-red-100 text-red-700 py-2 rounded-lg font-medium">Rejected ❌</button>);
-                        }
-                        return (<button disabled className="w-full bg-gray-300 text-gray-700 py-2 rounded-lg font-medium">{myProposal.status}</button>);
-                      }
-                      return (
-                        <button
-                          onClick={() => handleApplyClick(project)}
-                          className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 font-medium"
-                        >
-                          Apply Now
-                        </button>
-                      );
-                    })()}
-                  </div>
-                )) : (
-                  <p className="text-gray-500">No open projects available right now.</p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Sidebar Stats */}
-          <aside className="lg:col-span-4 space-y-6">
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <h4 className="font-semibold text-lg">Your Stats</h4>
-              <div className="mt-4 text-sm text-gray-600 space-y-3">
-                <div className="flex justify-between"><span>Proposals Sent</span><strong>{proposals.length}</strong></div>
-                <div className="flex justify-between"><span>Active Projects</span><strong>{activeProjects.length}</strong></div>
-                <div className="flex justify-between"><span>Earnings</span><strong>$4,250</strong></div>
-                <div className="flex justify-between"><span>Client Rating</span><strong>{profile?.rating || 0}/5</strong></div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg sm:text-xl font-bold text-gray-800">My Active Projects</h2>
-                <Link to="/freelancer/accepted-proposals" className="text-sm text-indigo-600 hover:underline">View All</Link>
-              </div>
-              <div className="space-y-4">
-                {activeProjects.length > 0 ? activeProjects.map(project => (
-                  <div key={project._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
-                      <h3 className="font-semibold text-gray-800">{project.title}</h3>
-                      <span className="font-bold text-indigo-600">${project.budget}</span>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-3 truncate">{project.description}</p>
-                    {/* ✅ FIX: Added the Collaborate button back */}
-                    <Link
-                        to={`/project/collaborate/${project._id}`}
-                        className="mt-3 inline-block bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition-colors duration-300 text-center text-sm"
-                    >
-                        Collaborate
-                    </Link>
-                  </div>
-                )) : (
-                  <p className="text-gray-500">No active projects yet.</p>
-                )}
-              </div>
-            </div>
-          </aside>
-        </div>
+        {/* ADDED: Routes component to render child pages */}
+        <Routes>
+            <Route path="/" element={<DashboardHome />} />
+            <Route path="/earnings" element={<FreelancerEarnings />} />
+            {/* You can add more routes here for other sidebar links if needed */}
+        </Routes>
+        
       </main>
 
       {/* Proposal Modal */}
