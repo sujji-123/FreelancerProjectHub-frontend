@@ -10,11 +10,11 @@ import {
 import { getProjects } from '../services/projectService';
 import { getFreelancerProposals, createProposal, withdrawProposal } from '../services/proposalService';
 import { getProfile, uploadProfilePicture } from '../services/userService';
+import { getBalance } from '../services/paymentService'; // Import getBalance
 import { toast } from 'react-toastify';
 import EditProfileModal from '../components/Profile/EditProfileModal';
 import FreelancerEarnings from './FreelancerEarnings';
 import notificationService from '../services/notificationService';
-import { getTasksByProject } from "../services/taskService";
 
 const readUser = () => {
   try {
@@ -31,80 +31,8 @@ const readUser = () => {
   return null;
 };
 
-// Extracted Task Progress into its own component/page for clarity
-const TaskProgressPage = () => {
-    const [allTasks, setAllTasks] = useState([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchTasks = async () => {
-            try {
-                const proposalRes = await getFreelancerProposals();
-                const activeProposals = (proposalRes.data || []).filter(p => p.status === 'accepted');
-                const tasksPromises = activeProposals.map(p => getTasksByProject(p.project._id));
-                const tasksResults = await Promise.all(tasksPromises);
-                setAllTasks(tasksResults.flat());
-            } catch (error) {
-                toast.error("Failed to load tasks.");
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchTasks();
-    }, []);
-
-    const getTasksByStatus = (status) => allTasks.filter((t) => t.status === status);
-    
-    const getStatusIcon = (status) => {
-        switch (status) {
-          case "done": return <FaCheckCircle className="text-green-500" />;
-          case "inprogress": return <FaSpinner className="text-blue-500 animate-spin" />;
-          default: return <FaCircle className="text-gray-400" />;
-        }
-    };
-
-    const getPriorityBadge = (priority) => {
-        const classes = { high: "bg-red-100 text-red-800", medium: "bg-yellow-100 text-yellow-800", low: "bg-green-100 text-green-800" };
-        return (<span className={`px-2 py-1 rounded-full text-xs font-medium ${classes[priority]}`}>{priority || 'normal'}</span>);
-    };
-
-    if (loading) return <p>Loading tasks...</p>;
-
-    return (
-        <section className="bg-white rounded-xl shadow-md p-4 md:p-6">
-            <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-gray-800">Your Task Progress</h2>
-                <Link to="/tasks" className="text-sm text-indigo-600 hover:underline">View All Tasks</Link>
-            </div>
-            {allTasks.length > 0 ? (
-                <div className="space-y-3">
-                    {["todo", "inprogress", "done"].map((status) => (
-                        <div key={status}>
-                            <h3 className="font-semibold text-gray-700 capitalize mb-2">{status === 'inprogress' ? 'In Progress' : status}</h3>
-                            {getTasksByStatus(status).length > 0 ? getTasksByStatus(status).map((task) => (
-                                <div key={task._id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-2 bg-gray-50 rounded mb-2 gap-2">
-                                    <div className="flex items-center">
-                                        {getStatusIcon(task.status)}
-                                        <span className="ml-2 text-sm">{task.title}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-xs">
-                                        {getPriorityBadge(task.priority)}
-                                        <span className="text-gray-500">{task.comments || 0} <FaComment className="inline" /></span>
-                                        <span className="text-gray-400">{new Date(task.createdAt).toLocaleDateString()}</span>
-                                    </div>
-                                </div>
-                            )) : <p className="text-xs text-gray-400">No tasks in this category.</p>}
-                        </div>
-                    ))}
-                </div>
-            ) : (<p className="text-gray-500">No tasks assigned to you yet.</p>)}
-        </section>
-    );
-};
-
 export default function FreelancerDashboard() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(readUser());
   const [profile, setProfile] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [projects, setProjects] = useState([]);
@@ -117,31 +45,38 @@ export default function FreelancerDashboard() {
   const [coverLetter, setCoverLetter] = useState('');
   const [bidAmount, setBidAmount] = useState('');
   const [notifications, setNotifications] = useState([]);
+  const [earnings, setEarnings] = useState(0); // State for dynamic earnings
   
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [profileRes, projectRes, proposalRes, notificationRes] = await Promise.all([
+        const [profileRes, projectRes, proposalRes, notificationRes, balanceRes] = await Promise.all([
           getProfile(),
           getProjects(),
           getFreelancerProposals(),
-          notificationService.getNotifications()
+          notificationService.getNotifications(),
+          getBalance() // Fetch balance
         ]);
         
         setProfile(profileRes.data);
         setProjects(projectRes.data || []);
         setProposals(proposalRes.data || []);
         setNotifications(notificationRes.data || []);
+        setEarnings(balanceRes.data.balance || 0); // Set dynamic earnings
 
       } catch (error) {
-        toast.error('Failed to load dashboard data.');
-        console.error("Dashboard fetch error:", error);
+        if (error.response && error.response.status === 404) {
+          console.log("Freelancer bank account not set up yet, earnings default to 0.");
+        } else {
+          toast.error('Failed to load some dashboard data.');
+          console.error("Dashboard fetch error:", error);
+        }
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, [user, navigate]);
+  }, [navigate]);
 
   useEffect(() => {
     const handler = async () => {
@@ -169,7 +104,7 @@ export default function FreelancerDashboard() {
   const unreadNotifications = notifications.filter((n) => !n.read).length;
 
   const activeProjects = useMemo(() => proposals
-    .filter(pr => pr.status === 'accepted' && pr.project)
+    .filter(pr => pr.status === 'accepted' && pr.project && pr.project.status !== 'completed')
     .map(pr => projects.find(p => String(p._id) === String(pr.project?._id || pr.project)))
     .filter(Boolean),
   [proposals, projects]);
@@ -247,7 +182,7 @@ export default function FreelancerDashboard() {
           </div>
           <div className="text-center sm:text-right">
             <div className="text-gray-500">Earnings</div>
-            <div className="text-xl font-bold">$4,250</div>
+            <div className="text-xl font-bold">${earnings.toLocaleString()}</div>
             <button onClick={() => setIsEditModalOpen(true)} className="mt-2 flex items-center justify-center sm:justify-end text-indigo-600 hover:underline"><FaEdit className="mr-1" /> Edit Profile</button>
           </div>
         </div>
@@ -287,17 +222,17 @@ export default function FreelancerDashboard() {
           <div className="mt-4 text-sm text-gray-600 space-y-3">
             <div className="flex justify-between"><span>Proposals Sent</span><strong>{proposals.length}</strong></div>
             <div className="flex justify-between"><span>Active Projects</span><strong>{activeProjects.length}</strong></div>
-            <div className="flex justify-between"><span>Earnings</span><strong>$4,250</strong></div>
+            <div className="flex justify-between"><span>Earnings</span><strong>${earnings.toLocaleString()}</strong></div>
             <div className="flex justify-between"><span>Client Rating</span><strong>{profile?.rating || 0}/5</strong></div>
           </div>
         </div>
         <div className="bg-white rounded-xl shadow-md p-6 flex-1 flex flex-col">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg sm:text-xl font-bold text-gray-800">My Active Projects</h2>
-            <Link to="/freelancer/accepted-proposals" className="text-sm text-indigo-600 hover:underline">View All</Link>
+            <Link to="/freelancer/my-contracts" className="text-sm text-indigo-600 hover:underline">View All</Link>
           </div>
           <div className="space-y-4 flex-1">
-            {activeProjects.length > 0 ? activeProjects.map(project => (
+            {activeProjects.slice(0, 2).map(project => (
               <div key={project._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
                   <h3 className="font-semibold text-gray-800">{project.title}</h3>
@@ -306,7 +241,8 @@ export default function FreelancerDashboard() {
                 <p className="text-sm text-gray-600 mb-3 truncate">{project.description}</p>
                 <Link to={`/project/collaborate/${project._id}`} className="mt-3 inline-block bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition-colors duration-300 text-center text-sm">Collaborate</Link>
               </div>
-            )) : (<p className="text-gray-500">No active projects yet.</p>)}
+            ))}
+            {activeProjects.length === 0 && (<p className="text-gray-500">No active projects yet.</p>)}
           </div>
         </div>
       </aside>
@@ -327,10 +263,10 @@ export default function FreelancerDashboard() {
           <Link to="/freelancer/projects" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg"><FaShoppingBag className="mr-3 h-5 w-5" /> Browse Projects</Link>
           <Link to="/freelancer/my-proposals" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg"><FaClipboardList className="mr-3 h-5 w-5" /> My Proposals</Link>
           <Link to="/clients" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg"><FaUserCircle className="mr-3 h-5 w-5" /> View Clients</Link>
-          <Link to="/freelancer/accepted-proposals" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg"><FaFileContract className="mr-3 h-5 w-5" /> My Contracts</Link>
-          <Link to="/freelancer/dashboard/tasks" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg"><FaTasks className="mr-3 h-5 w-5" /> Task Progress</Link>
+          <Link to="/freelancer/my-contracts" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg"><FaFileContract className="mr-3 h-5 w-5" /> My Contracts</Link>
+          <Link to="/freelancer/tasks" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg"><FaTasks className="mr-3 h-5 w-5" /> Task Progress</Link>
           <Link to="/messages" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg"><FaEnvelope className="mr-3 h-5 w-5" /> Messages</Link>
-          <Link to="/freelancer/dashboard/earnings" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg"><FaMoneyBill className="mr-3 h-5 w-5" /> Earnings</Link>
+          <Link to="/freelancer/earnings" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg"><FaMoneyBill className="mr-3 h-5 w-5" /> Earnings</Link>
           <Link to="/freelancer/settings" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg"><FaCog className="mr-3 h-5 w-5" /> Settings</Link>
         </nav>
         <div className="p-4 border-t">
@@ -359,7 +295,6 @@ export default function FreelancerDashboard() {
             <Routes>
               <Route path="/" element={<DashboardHome />} />
               <Route path="/earnings" element={<FreelancerEarnings />} />
-              <Route path="/tasks" element={<TaskProgressPage />} />
             </Routes>
         </div>
       </main>

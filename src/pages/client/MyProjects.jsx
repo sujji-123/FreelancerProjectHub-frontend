@@ -1,15 +1,15 @@
-
 import React, { useEffect, useState } from "react";
 import projectService from "../../services/projectService";
 import { toast } from "react-toastify";
+import { FaStar } from 'react-icons/fa'; // IMPORT FaStar
+import FeedbackModal from '../../components/Feedback/FeedbackModal'; // IMPORT FeedbackModal
 
 export default function MyProjects() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  
   const [editingProject, setEditingProject] = useState(null);
   const [form, setForm] = useState({ title: "", description: "", budget: 0 });
+  const [selectedProjectForFeedback, setSelectedProjectForFeedback] = useState(null); // ADDED STATE FOR MODAL
 
   const fetchMyProjects = async () => {
     setLoading(true);
@@ -68,8 +68,8 @@ export default function MyProjects() {
         prev.map((p) => (p._id === editingProject._id ? res.data : p))
       );
       toast.success("Project updated");
-      setEditingProject(null); 
-    } catch (err) {
+      setEditingProject(null);
+    } catch (err) { // --- BRACES ADDED HERE ---
       console.error("Update failed:", err);
       toast.error("Update failed");
     }
@@ -122,26 +122,37 @@ export default function MyProjects() {
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2">
-                <button
-                  onClick={() => handleStatusChange(project._id, "allocated")}
-                  className="px-3 py-1 bg-amber-100 text-amber-800 rounded-lg text-sm"
-                >
-                  Mark Allocated
-                </button>
+                {project.status === 'completed' ? (
+                    <button
+                        onClick={() => setSelectedProjectForFeedback(project)}
+                        className="w-full flex items-center justify-center gap-2 px-3 py-1 bg-yellow-500 text-white rounded-lg text-sm font-semibold hover:bg-yellow-600"
+                    >
+                        <FaStar /> Leave Feedback
+                    </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => handleStatusChange(project._id, "allocated")}
+                      className="px-3 py-1 bg-amber-100 text-amber-800 rounded-lg text-sm"
+                    >
+                      Mark Allocated
+                    </button>
 
-                <button
-                  onClick={() => handleStatusChange(project._id, "in-progress")}
-                  className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-lg text-sm"
-                >
-                  Mark Under Work
-                </button>
+                    <button
+                      onClick={() => handleStatusChange(project._id, "in-progress")}
+                      className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-lg text-sm"
+                    >
+                      Mark Under Work
+                    </button>
 
-                <button
-                  onClick={() => handleStatusChange(project._id, "completed")}
-                  className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm"
-                >
-                  Mark Completed
-                </button>
+                    <button
+                      onClick={() => handleStatusChange(project._id, "completed")}
+                      className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm"
+                    >
+                      Mark Completed
+                    </button>
+                  </>
+                )}
 
                 <button
                   onClick={() => handleDelete(project._id)}
@@ -162,6 +173,13 @@ export default function MyProjects() {
         </div>
       )}
 
+      {selectedProjectForFeedback && (
+        <FeedbackModal
+            project={selectedProjectForFeedback}
+            onClose={() => setSelectedProjectForFeedback(null)}
+            onFeedbackSubmitted={fetchMyProjects}
+        />
+      )}
       
       {editingProject && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">

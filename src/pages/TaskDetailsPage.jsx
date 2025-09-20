@@ -1,18 +1,24 @@
 // src/pages/TaskDetailsPage.jsx
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import { toast } from 'react-toastify';
 import { getTasksByProject } from '../services/taskService';
 import projectService from '../services/projectService';
+import { getFreelancerProposals } from '../services/proposalService';
 import { FaCheckCircle, FaSpinner, FaCircle, FaComment, FaArrowLeft } from 'react-icons/fa';
 
+// Standardized readUser function for consistency
 const readUser = () => {
+    try {
+        const u = localStorage.getItem("user");
+        if (u) return JSON.parse(u);
+    } catch (err) { /* ignore */ }
     try {
         const token = localStorage.getItem("token");
         if (token) {
             const dec = jwtDecode(token);
-            return dec.user || { role: dec.role };
+            return dec.user || { role: dec.role, id: dec.id };
         }
     } catch (err) { /* ignore */ }
     return null;
@@ -21,32 +27,43 @@ const readUser = () => {
 export default function TaskDetailsPage() {
     const [allTasks, setAllTasks] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [user, setUser] = useState(readUser());
+    const [user] = useState(readUser());
+    const navigate = useNavigate();
 
     useEffect(() => {
+        // This effect is now more robust. It ensures the user object exists
+        // before attempting to fetch any data.
+        if (!user || !user.role) {
+            toast.error("You must be logged in to view tasks.");
+            navigate('/login');
+            return;
+        }
+
         const fetchAllTasks = async () => {
             try {
-                let projects = [];
+                let tasksPromises = [];
                 if (user.role === 'client') {
                     const res = await projectService.getMyProjects();
-                    projects = res.data || [];
+                    const projects = res.data || [];
+                    tasksPromises = projects.map(p => getTasksByProject(p._id));
                 } else {
-                    // For freelancers, we get all projects and then filter
-                    const res = await projectService.getProjects();
-                    projects = res.data || [];
+                    const proposalRes = await getFreelancerProposals();
+                    const activeProposals = (proposalRes.data || []).filter(p => p.status === 'accepted');
+                    tasksPromises = activeProposals.map(p => getTasksByProject(p.project._id));
                 }
 
-                const tasksPromises = projects.map(p => getTasksByProject(p._id));
                 const tasksResults = await Promise.all(tasksPromises);
                 setAllTasks(tasksResults.flat());
             } catch (err) {
                 toast.error('Failed to load tasks.');
+                console.error("Fetch tasks error:", err);
             } finally {
                 setLoading(false);
             }
         };
+
         fetchAllTasks();
-    }, [user.role]);
+    }, [user, navigate]); // Depend on the user object itself for reliability
 
     const getTasksByStatus = (status) => allTasks.filter((t) => t.status === status);
 
@@ -94,7 +111,7 @@ export default function TaskDetailsPage() {
                                                 </div>
                                                 <div className="flex items-center gap-4 text-sm mt-2 sm:mt-0">
                                                     {getPriorityBadge(task.priority)}
-                                                    <span className="text-gray-500 flex items-center gap-1">{task.comments || 0} <FaComment /></span>
+                                                    <span className="text-gray-500 flex items-center gap-1">{task.comments?.length || 0} <FaComment /></span>
                                                     <span className="text-gray-500">{new Date(task.createdAt).toLocaleDateString()}</span>
                                                 </div>
                                             </div>

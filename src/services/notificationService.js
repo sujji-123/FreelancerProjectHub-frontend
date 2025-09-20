@@ -8,4 +8,12 @@ export const getNotifications = () => api.get("/notifications");
 export const markNotificationRead = (id) =>
   api.patch(`/notifications/${id}/read`);
 
-export default { getNotifications, markNotificationRead };
+// ADDED: Mark all notifications as read
+export const markAllNotificationsRead = () =>
+  api.patch("/notifications/read-all");
+
+export default { 
+  getNotifications, 
+  markNotificationRead, 
+  markAllNotificationsRead // ADDED
+};

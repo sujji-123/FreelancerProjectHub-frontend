@@ -5,6 +5,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { SocketProvider } from './context/SocketContext';
 
+// Import all your existing pages...
 import Signup from './pages/Signup';
 import Verify from './pages/Verify';
 import Login from './pages/Login';
@@ -23,14 +24,18 @@ import ProjectCollab from './pages/ProjectCollab';
 import ClientPayment from './pages/ClientPayment';
 import FreelancerEarnings from './pages/FreelancerEarnings';
 import NotificationsPage from './pages/NotificationsPage';
-// ADDED: Import the MessagesPage
 import MessagesPage from './pages/MessagesPage';
-// ADDED: Import the new task details page
 import TaskDetailsPage from './pages/TaskDetailsPage';
+import SettingsPage from './pages/SettingsPage';
+import ClientProposals from './pages/ClientProposals';
+import RateUserPage from './pages/RateUserPage';
+// --- IMPORT THE TWO NEW PAGES ---
+import FreelancerMyProposals from './pages/FreelancerMyProposals';
+import FreelancerMyContracts from './pages/FreelancerMyContracts';
 
 function App() {
   return (
-    <SocketProvider> {/* ADDED: Wrap everything with SocketProvider */}
+    <SocketProvider>
       <Router>
         <ToastContainer
           position="top-right"
@@ -38,6 +43,7 @@ function App() {
           hideProgressBar={false}
         />
         <Routes>
+          {/* All your existing routes... */}
           <Route path="/signup" element={<Signup />} />
           <Route path="/verify" element={<Verify />} />
           <Route path="/login" element={<Login />} />
@@ -47,6 +53,16 @@ function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/client/dashboard/*" element={<ClientDashboard />} />
           <Route path="/freelancer/dashboard/*" element={<FreelancerDashboard />} />
+          <Route path="/client/tasks" element={<TaskDetailsPage />} />
+          <Route path="/freelancer/tasks" element={<TaskDetailsPage />} />
+          <Route path="/client/settings" element={<SettingsPage />} />
+          <Route path="/freelancer/settings" element={<SettingsPage />} />
+          <Route path="/client/proposals" element={<ClientProposals />} />
+
+          {/* --- NEW ROUTES ADDED FOR FREELANCER --- */}
+          <Route path="/freelancer/my-proposals" element={<FreelancerMyProposals />} />
+          <Route path="/freelancer/my-contracts" element={<FreelancerMyContracts />} />
+
           <Route path="/project/:id" element={<ProjectDashboard />} />
           <Route path="/client/post-project" element={<PostProject />} />
           <Route path="/freelancer/projects" element={<FreelancerProjects />} />
@@ -57,11 +73,10 @@ function App() {
           <Route path="/client/payment" element={<ClientDashboard />} />
           <Route path="/freelancer/earnings" element={<FreelancerDashboard />} />
           <Route path="/notifications" element={<NotificationsPage />} />
-          {/* ADDED: Route for messages */}
           <Route path="/messages" element={<MessagesPage />} />
-
-          {/* ADDED: Route for the task details page */}
           <Route path="/tasks" element={<TaskDetailsPage />} />
+          <Route path="/client/rate-user" element={<RateUserPage />} />
+          <Route path="/freelancer/rate-user" element={<RateUserPage />} />
         </Routes>
       </Router>
     </SocketProvider>
