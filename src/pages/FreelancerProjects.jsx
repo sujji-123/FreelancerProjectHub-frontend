@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getProjects } from '../services/projectService';
-import { createProposal } from '../services/proposalService';
+import { createProposal, getFreelancerProposals, withdrawProposal } from '../services/proposalService';
 import { toast } from 'react-toastify';
 
 const readUser = () => {
@@ -13,6 +13,7 @@ export default function FreelancerProjects() {
   const navigate = useNavigate();
   const [user] = useState(readUser());
   const [projects, setProjects] = useState([]);
+  const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [applyFor, setApplyFor] = useState(null); // project object
@@ -26,8 +27,12 @@ export default function FreelancerProjects() {
     }
     (async () => {
       try {
-        const { data } = await getProjects();
-        setProjects(data || []);
+        const [projectRes, proposalRes] = await Promise.all([
+          getProjects(),
+          getFreelancerProposals(),
+        ]);
+        setProjects(projectRes.data || []);
+        setProposals(proposalRes.data || []);
       } catch (e) {
         toast.error('Failed to load projects');
       } finally {
@@ -57,12 +62,26 @@ export default function FreelancerProjects() {
         coverLetter: coverLetter.trim(),
       });
       toast.success('Proposal submitted!');
-      // reset modal fields and close
+      const res = await getFreelancerProposals();
+      setProposals(res.data || []);
       setApplyFor(null);
       setBidAmount('');
       setCoverLetter('');
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to submit proposal');
+    }
+  };
+
+  const handleWithdrawProposal = async (proposalId) => {
+    if (window.confirm('Are you sure you want to withdraw this proposal?')) {
+      try {
+        await withdrawProposal(proposalId);
+        toast.success('Proposal withdrawn');
+        const res = await getFreelancerProposals();
+        setProposals(res.data || []);
+      } catch (err) {
+        toast.error(err.response?.data?.msg || 'Failed to withdraw proposal.');
+      }
     }
   };
 
@@ -79,24 +98,50 @@ export default function FreelancerProjects() {
           <p>No open projects yet.</p>
         ) : (
           <div className="grid md:grid-cols-2 gap-4">
-            {openProjects.map(p => (
-              <div key={p._id} className="bg-white rounded-2xl shadow p-4">
-                <h2 className="text-lg font-semibold">{p.title}</h2>
-                <p className="text-gray-600 whitespace-pre-line mt-1">{p.description}</p>
-                <div className="text-sm text-gray-500 mt-2">Budget: ${p.budget}</div>
-                <button
-                  className="mt-3 px-3 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
-                  onClick={() => setApplyFor(p)}
-                >
-                  Apply
-                </button>
-              </div>
-            ))}
+            {openProjects.map(p => {
+              const myProposal = proposals.find(pr => String(pr.project && (pr.project._id || pr.project)) === String(p._id));
+              return (
+                <div key={p._id} className="bg-white rounded-2xl shadow p-4">
+                  <h2 className="text-lg font-semibold">{p.title}</h2>
+                  <p className="text-gray-600 whitespace-pre-line mt-1">{p.description}</p>
+                  <div className="text-sm text-gray-500 mt-2">Budget: ${p.budget}</div>
+                  <div className="mt-3">
+                    {(() => {
+                      if (myProposal) {
+                        if (myProposal.status === "pending") {
+                          return (
+                            <div className="flex flex-row gap-2">
+                              <button disabled className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg font-medium">Applied</button>
+                              <button onClick={() => handleWithdrawProposal(myProposal._id)} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">Withdraw</button>
+                            </div>
+                          );
+                        }
+                        if (myProposal.status === "accepted") {
+                          return (<button disabled className="w-full bg-green-100 text-green-700 py-2 rounded-lg font-medium">Accepted ✅</button>);
+                        }
+                        if (myProposal.status === "rejected") {
+                          return (<button disabled className="w-full bg-red-100 text-red-700 py-2 rounded-lg font-medium">Rejected ❌</button>);
+                        }
+                        // Fallback for any other status
+                        return (<button disabled className="w-full bg-gray-300 text-gray-700 py-2 rounded-lg font-medium">{myProposal.status}</button>);
+                      }
+                      return (
+                        <button
+                          className="px-3 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
+                          onClick={() => setApplyFor(p)}
+                        >
+                          Apply
+                        </button>
+                      );
+                    })()}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* Simple Modal */}
       {applyFor && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-xl rounded-2xl shadow p-6">
