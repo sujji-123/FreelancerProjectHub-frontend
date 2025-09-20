@@ -11,11 +11,14 @@ export const getAllClients = () => api.get('/users/clients');
 
 export const getAllFreelancers = () => api.get('/users/freelancers');
 
+// ADDED: Function to get all users (needed for messaging)
+export const getAllUsers = () => api.get('/users');
 
 export default {
     getProfile,
     updateProfile,
     uploadProfilePicture,
     getAllClients,
-    getAllFreelancers
+    getAllFreelancers,
+    getAllUsers // ADDED: Export the new function
 };

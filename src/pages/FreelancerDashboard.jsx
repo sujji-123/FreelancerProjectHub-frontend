@@ -1,21 +1,20 @@
 // src/pages/FreelancerDashboard.jsx
 import React, { useEffect, useMemo, useState } from 'react';
-// ADDED: Import Routes and Route for nesting
 import { useNavigate, Link, Routes, Route } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import {
   FaUserCircle, FaCog, FaSignOutAlt, FaSearch, FaBell, FaStar,
   FaShoppingBag, FaClipboardList, FaFileContract, FaEnvelope, FaMoneyBill,
-  FaCheckCircle, FaSpinner, FaCircle, FaEdit, FaBars
+  FaCheckCircle, FaSpinner, FaCircle, FaEdit, FaBars, FaComment, FaTasks
 } from 'react-icons/fa';
 import { getProjects } from '../services/projectService';
 import { getFreelancerProposals, createProposal, withdrawProposal } from '../services/proposalService';
 import { getProfile, uploadProfilePicture } from '../services/userService';
 import { toast } from 'react-toastify';
 import EditProfileModal from '../components/Profile/EditProfileModal';
-
-// ADDED: Import the component to be rendered
 import FreelancerEarnings from './FreelancerEarnings';
+import notificationService from '../services/notificationService';
+import { getTasksByProject } from "../services/taskService";
 
 const readUser = () => {
   try {
@@ -32,6 +31,77 @@ const readUser = () => {
   return null;
 };
 
+// Extracted Task Progress into its own component/page for clarity
+const TaskProgressPage = () => {
+    const [allTasks, setAllTasks] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchTasks = async () => {
+            try {
+                const proposalRes = await getFreelancerProposals();
+                const activeProposals = (proposalRes.data || []).filter(p => p.status === 'accepted');
+                const tasksPromises = activeProposals.map(p => getTasksByProject(p.project._id));
+                const tasksResults = await Promise.all(tasksPromises);
+                setAllTasks(tasksResults.flat());
+            } catch (error) {
+                toast.error("Failed to load tasks.");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchTasks();
+    }, []);
+
+    const getTasksByStatus = (status) => allTasks.filter((t) => t.status === status);
+    
+    const getStatusIcon = (status) => {
+        switch (status) {
+          case "done": return <FaCheckCircle className="text-green-500" />;
+          case "inprogress": return <FaSpinner className="text-blue-500 animate-spin" />;
+          default: return <FaCircle className="text-gray-400" />;
+        }
+    };
+
+    const getPriorityBadge = (priority) => {
+        const classes = { high: "bg-red-100 text-red-800", medium: "bg-yellow-100 text-yellow-800", low: "bg-green-100 text-green-800" };
+        return (<span className={`px-2 py-1 rounded-full text-xs font-medium ${classes[priority]}`}>{priority || 'normal'}</span>);
+    };
+
+    if (loading) return <p>Loading tasks...</p>;
+
+    return (
+        <section className="bg-white rounded-xl shadow-md p-4 md:p-6">
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-800">Your Task Progress</h2>
+                <Link to="/tasks" className="text-sm text-indigo-600 hover:underline">View All Tasks</Link>
+            </div>
+            {allTasks.length > 0 ? (
+                <div className="space-y-3">
+                    {["todo", "inprogress", "done"].map((status) => (
+                        <div key={status}>
+                            <h3 className="font-semibold text-gray-700 capitalize mb-2">{status === 'inprogress' ? 'In Progress' : status}</h3>
+                            {getTasksByStatus(status).length > 0 ? getTasksByStatus(status).map((task) => (
+                                <div key={task._id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-2 bg-gray-50 rounded mb-2 gap-2">
+                                    <div className="flex items-center">
+                                        {getStatusIcon(task.status)}
+                                        <span className="ml-2 text-sm">{task.title}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-xs">
+                                        {getPriorityBadge(task.priority)}
+                                        <span className="text-gray-500">{task.comments || 0} <FaComment className="inline" /></span>
+                                        <span className="text-gray-400">{new Date(task.createdAt).toLocaleDateString()}</span>
+                                    </div>
+                                </div>
+                            )) : <p className="text-xs text-gray-400">No tasks in this category.</p>}
+                        </div>
+                    ))}
+                </div>
+            ) : (<p className="text-gray-500">No tasks assigned to you yet.</p>)}
+        </section>
+    );
+};
+
 export default function FreelancerDashboard() {
   const navigate = useNavigate();
   const [user, setUser] = useState(readUser());
@@ -41,28 +111,28 @@ export default function FreelancerDashboard() {
   const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-
-  // Sidebar toggle (for mobile)
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  // Proposal modal state
   const [showModal, setShowModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
   const [coverLetter, setCoverLetter] = useState('');
   const [bidAmount, setBidAmount] = useState('');
-
-  // Fetch projects and proposals
+  const [notifications, setNotifications] = useState([]);
+  
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const profileRes = await getProfile();
+        const [profileRes, projectRes, proposalRes, notificationRes] = await Promise.all([
+          getProfile(),
+          getProjects(),
+          getFreelancerProposals(),
+          notificationService.getNotifications()
+        ]);
+        
         setProfile(profileRes.data);
-
-        const projectRes = await getProjects();
         setProjects(projectRes.data || []);
-
-        const proposalRes = await getFreelancerProposals();
         setProposals(proposalRes.data || []);
+        setNotifications(notificationRes.data || []);
+
       } catch (error) {
         toast.error('Failed to load dashboard data.');
         console.error("Dashboard fetch error:", error);
@@ -70,19 +140,15 @@ export default function FreelancerDashboard() {
         setLoading(false);
       }
     };
-
     fetchData();
   }, [user, navigate]);
 
-  // Refresh proposals when "proposal_updated" event fires
   useEffect(() => {
     const handler = async () => {
       try {
         const res = await getFreelancerProposals();
         setProposals(res.data || []);
-      } catch (err) {
-        console.error("Failed to refresh proposals on update", err);
-      }
+      } catch (err) { console.error("Failed to refresh proposals on update", err); }
     };
     window.addEventListener("proposal_updated", handler);
     return () => window.removeEventListener("proposal_updated", handler);
@@ -94,19 +160,19 @@ export default function FreelancerDashboard() {
     navigate('/login');
   };
 
-  const openProjects = useMemo(
-    () => projects.filter(p => p.status === 'open').slice(0, 3),
-    [projects]
-  );
+  const openProjects = useMemo(() => {
+    const open = projects.filter(p => p.status === 'open');
+    if (!searchQuery.trim()) return open.slice(0, 3);
+    return open.filter(p => p.title.toLowerCase().includes(searchQuery.trim().toLowerCase())).slice(0, 3);
+  }, [projects, searchQuery]);
+  
+  const unreadNotifications = notifications.filter((n) => !n.read).length;
 
-  const activeProjects = useMemo(
-    () =>
-      proposals
-        .filter(pr => pr.status === 'accepted' && pr.project)
-        .map(pr => projects.find(p => String(p._id) === String(pr.project?._id || pr.project)))
-        .filter(Boolean),
-    [proposals, projects]
-  );
+  const activeProjects = useMemo(() => proposals
+    .filter(pr => pr.status === 'accepted' && pr.project)
+    .map(pr => projects.find(p => String(p._id) === String(pr.project?._id || pr.project)))
+    .filter(Boolean),
+  [proposals, projects]);
 
   const handleApplyClick = (project) => {
     setSelectedProject(project);
@@ -121,14 +187,9 @@ export default function FreelancerDashboard() {
       return;
     }
     try {
-      await createProposal({
-        projectId: selectedProject._id,
-        coverLetter,
-        bidAmount: Number(bidAmount)
-      });
+      await createProposal({ projectId: selectedProject._id, coverLetter, bidAmount: Number(bidAmount) });
       toast.success("Proposal submitted!");
       setShowModal(false);
-
       const res = await getFreelancerProposals();
       setProposals(res.data || []);
     } catch (err) {
@@ -164,243 +225,151 @@ export default function FreelancerDashboard() {
       }
     }
   };
-  
-  // ADDED: A dashboard home component to avoid rendering the earnings page by default
+
   const DashboardHome = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-8 space-y-6">
-          {/* Profile card */}
-          <div className="bg-white rounded-xl shadow-md p-6 flex flex-col sm:flex-row items-center sm:justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xl relative">
-                <label htmlFor="profile-picture-upload" className="cursor-pointer">
-                  {profile?.profilePicture ? (
-                    <img src={`http://localhost:5001/${profile.profilePicture}`} alt="Profile" className="w-16 h-16 rounded-full object-cover" />
-                  ) : (
-                    <span>{profile?.name ? profile.name.charAt(0).toUpperCase() : 'U'}</span>
-                  )}
-                </label>
-                <input type="file" id="profile-picture-upload" className="hidden" onChange={handleProfilePictureChange} />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800">{profile?.name}</h3>
-                <div className="flex flex-wrap items-center space-x-2 text-sm text-gray-500">
-                  <span>Web Developer</span>
-                  <span className="flex items-center text-yellow-400"><FaStar className="mr-1" />{profile?.rating || 0}/5</span>
-                  <span>({profile?.reviews?.length || 0} reviews)</span>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {profile?.skills.map(skill => (
-                    <span key={skill} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">{skill}</span>
-                  ))}
-                </div>
-              </div>
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
+      <div className="lg:col-span-8 flex flex-col gap-6">
+        <div className="bg-white rounded-xl shadow-md p-6 flex flex-col sm:flex-row items-center sm:justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xl relative">
+              <label htmlFor="profile-picture-upload" className="cursor-pointer">{profile?.profilePicture ? (<img src={`http://localhost:5001/${profile.profilePicture}`} alt="Profile" className="w-16 h-16 rounded-full object-cover" />) : (<span>{profile?.name ? profile.name.charAt(0).toUpperCase() : 'U'}</span>)}</label>
+              <input type="file" id="profile-picture-upload" className="hidden" onChange={handleProfilePictureChange} />
             </div>
-            <div className="text-center sm:text-right">
-              <div className="text-gray-500">Earnings</div>
-              <div className="text-xl font-bold">$4,250</div>
-              <button onClick={() => setIsEditModalOpen(true)} className="mt-2 flex items-center justify-center sm:justify-end text-indigo-600 hover:underline">
-                <FaEdit className="mr-1" /> Edit Profile
-              </button>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800">{profile?.name}</h3>
+              <div className="flex flex-wrap items-center space-x-2 text-sm text-gray-500">
+                <span>Web Developer</span>
+                <span className="flex items-center text-yellow-400"><FaStar className="mr-1" />{profile?.rating || 0}/5</span>
+                <span>({profile?.reviews?.length || 0} reviews)</span>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">{profile?.skills.map(skill => (<span key={skill} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">{skill}</span>))}</div>
             </div>
           </div>
-
-          {/* Job Recommendations */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg sm:text-xl font-bold text-gray-800">Job Recommendations</h2>
-              <Link to="/freelancer/projects" className='text-sm text-indigo-600 hover:underline'>View All</Link>
-            </div>
-            <div className="space-y-4">
-              {openProjects.length > 0 ? openProjects.map(project => (
-                <div key={project._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
-                    <h3 className="font-semibold text-gray-800">{project.title}</h3>
-                    <span className="font-bold text-indigo-600">${project.budget}</span>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-3 truncate">{project.description}</p>
-                  {(() => {
-                    const myProposal = proposals.find(pr =>
-                      String(pr.project && (pr.project._id || pr.project)) === String(project._id)
-                    );
-                    if (myProposal) {
-                      if (myProposal.status === "pending") {
-                        return (
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            <button disabled className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg font-medium">Proposal Sent</button>
-                            <button onClick={() => handleWithdrawProposal(myProposal._id)} className="bg-red-500 text-white px-4 py-2 rounded-lg">Withdraw</button>
-                          </div>
-                        );
-                      }
-                      if (myProposal.status === "accepted") {
-                        return (<button disabled className="w-full bg-green-100 text-green-700 py-2 rounded-lg font-medium">Accepted ✅</button>);
-                      }
-                      if (myProposal.status === "rejected") {
-                        return (<button disabled className="w-full bg-red-100 text-red-700 py-2 rounded-lg font-medium">Rejected ❌</button>);
-                      }
-                      return (<button disabled className="w-full bg-gray-300 text-gray-700 py-2 rounded-lg font-medium">{myProposal.status}</button>);
-                    }
-                    return (
-                      <button
-                        onClick={() => handleApplyClick(project)}
-                        className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 font-medium"
-                      >
-                        Apply Now
-                      </button>
-                    );
-                  })()}
-                </div>
-              )) : (
-                <p className="text-gray-500">No open projects available right now.</p>
-              )}
-            </div>
+          <div className="text-center sm:text-right">
+            <div className="text-gray-500">Earnings</div>
+            <div className="text-xl font-bold">$4,250</div>
+            <button onClick={() => setIsEditModalOpen(true)} className="mt-2 flex items-center justify-center sm:justify-end text-indigo-600 hover:underline"><FaEdit className="mr-1" /> Edit Profile</button>
           </div>
         </div>
-
-        {/* Sidebar Stats */}
-        <aside className="lg:col-span-4 space-y-6">
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h4 className="font-semibold text-lg">Your Stats</h4>
-            <div className="mt-4 text-sm text-gray-600 space-y-3">
-              <div className="flex justify-between"><span>Proposals Sent</span><strong>{proposals.length}</strong></div>
-              <div className="flex justify-between"><span>Active Projects</span><strong>{activeProjects.length}</strong></div>
-              <div className="flex justify-between"><span>Earnings</span><strong>$4,250</strong></div>
-              <div className="flex justify-between"><span>Client Rating</span><strong>{profile?.rating || 0}/5</strong></div>
-            </div>
+        <div className="bg-white rounded-xl shadow-md p-6 flex-1 flex flex-col">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-800">Job Recommendations</h2>
+            <Link to="/freelancer/projects" className='text-sm text-indigo-600 hover:underline'>View All</Link>
           </div>
-
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg sm:text-xl font-bold text-gray-800">My Active Projects</h2>
-              <Link to="/freelancer/accepted-proposals" className="text-sm text-indigo-600 hover:underline">View All</Link>
-            </div>
-            <div className="space-y-4">
-              {activeProjects.length > 0 ? activeProjects.map(project => (
-                <div key={project._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
-                    <h3 className="font-semibold text-gray-800">{project.title}</h3>
-                    <span className="font-bold text-indigo-600">${project.budget}</span>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-3 truncate">{project.description}</p>
-                  {/* ✅ FIX: Added the Collaborate button back */}
-                  <Link
-                      to={`/project/collaborate/${project._id}`}
-                      className="mt-3 inline-block bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition-colors duration-300 text-center text-sm"
-                  >
-                      Collaborate
-                  </Link>
+          <div className="space-y-4 flex-1">
+            {openProjects.length > 0 ? openProjects.map(project => (
+              <div key={project._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
+                  <h3 className="font-semibold text-gray-800">{project.title}</h3>
+                  <span className="font-bold text-indigo-600">${project.budget}</span>
                 </div>
-              )) : (
-                <p className="text-gray-500">No active projects yet.</p>
-              )}
-            </div>
+                <p className="text-sm text-gray-600 mb-3 truncate">{project.description}</p>
+                {(() => {
+                  const myProposal = proposals.find(pr => String(pr.project && (pr.project._id || pr.project)) === String(project._id));
+                  if (myProposal) {
+                    if (myProposal.status === "pending") {
+                      return (<div className="flex flex-col sm:flex-row gap-2"><button disabled className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg font-medium">Proposal Sent</button><button onClick={() => handleWithdrawProposal(myProposal._id)} className="bg-red-500 text-white px-4 py-2 rounded-lg">Withdraw</button></div>);
+                    } if (myProposal.status === "accepted") {
+                      return (<button disabled className="w-full bg-green-100 text-green-700 py-2 rounded-lg font-medium">Accepted ✅</button>);
+                    } if (myProposal.status === "rejected") {
+                      return (<button disabled className="w-full bg-red-100 text-red-700 py-2 rounded-lg font-medium">Rejected ❌</button>);
+                    } return (<button disabled className="w-full bg-gray-300 text-gray-700 py-2 rounded-lg font-medium">{myProposal.status}</button>);
+                  } return (<button onClick={() => handleApplyClick(project)} className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 font-medium">Apply Now</button>);
+                })()}
+              </div>
+            )) : (<p className="text-gray-500">No open projects matching your search.</p>)}
           </div>
-        </aside>
+        </div>
       </div>
+      <aside className="lg:col-span-4 flex flex-col gap-6">
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <h4 className="font-semibold text-lg">Your Stats</h4>
+          <div className="mt-4 text-sm text-gray-600 space-y-3">
+            <div className="flex justify-between"><span>Proposals Sent</span><strong>{proposals.length}</strong></div>
+            <div className="flex justify-between"><span>Active Projects</span><strong>{activeProjects.length}</strong></div>
+            <div className="flex justify-between"><span>Earnings</span><strong>$4,250</strong></div>
+            <div className="flex justify-between"><span>Client Rating</span><strong>{profile?.rating || 0}/5</strong></div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl shadow-md p-6 flex-1 flex flex-col">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-800">My Active Projects</h2>
+            <Link to="/freelancer/accepted-proposals" className="text-sm text-indigo-600 hover:underline">View All</Link>
+          </div>
+          <div className="space-y-4 flex-1">
+            {activeProjects.length > 0 ? activeProjects.map(project => (
+              <div key={project._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
+                  <h3 className="font-semibold text-gray-800">{project.title}</h3>
+                  <span className="font-bold text-indigo-600">${project.budget}</span>
+                </div>
+                <p className="text-sm text-gray-600 mb-3 truncate">{project.description}</p>
+                <Link to={`/project/collaborate/${project._id}`} className="mt-3 inline-block bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition-colors duration-300 text-center text-sm">Collaborate</Link>
+              </div>
+            )) : (<p className="text-gray-500">No active projects yet.</p>)}
+          </div>
+        </div>
+      </aside>
+    </div>
   );
 
   if (loading) return <div className="p-8">Loading dashboard...</div>;
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-gray-50">
-      {/* Sidebar (responsive) */}
-      <aside className={`fixed lg:static top-0 left-0 h-full w-64 bg-white shadow-lg transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 transition-transform duration-300 z-50`}>
+    <div className="flex h-screen bg-gray-50">
+      <aside className={`fixed lg:static top-0 left-0 h-full w-64 bg-white shadow-lg transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 transition-transform duration-300 z-50 flex flex-col`}>
         <div className="p-6 text-2xl font-bold text-indigo-600 border-b-2 border-gray-100 flex justify-between items-center">
           FreelancerHub
           <button className="lg:hidden text-gray-600" onClick={() => setSidebarOpen(false)}>✖</button>
         </div>
         <nav className="flex-grow p-4 space-y-2">
-          <Link to="/freelancer/dashboard" className="flex items-center px-4 py-2.5 text-gray-700 bg-indigo-100 rounded-lg font-semibold">
-            <FaUserCircle className="mr-3 h-5 w-5" /> Dashboard
-          </Link>
-          <Link to="/freelancer/projects" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg">
-            <FaShoppingBag className="mr-3 h-5 w-5" /> Browse Projects
-          </Link>
-          <Link to="/freelancer/my-proposals" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg">
-            <FaClipboardList className="mr-3 h-5 w-5" /> My Proposals
-          </Link>
-          <Link to="/clients" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg">
-            <FaUserCircle className="mr-3 h-5 w-5" /> View Clients
-          </Link>
-          {/* ✅ FIX: Corrected link to point to the page for accepted proposals */}
-          <Link to="/freelancer/accepted-proposals" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg">
-            <FaFileContract className="mr-3 h-5 w-5" /> My Contracts
-          </Link>
-          <Link to="#" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg">
-            <FaEnvelope className="mr-3 h-5 w-5" /> Messages
-          </Link>
-          {/* MODIFIED: Corrected link path */}
-          <Link to="/freelancer/dashboard/earnings" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg">
-            <FaMoneyBill className="mr-3 h-5 w-5" /> Earnings
-          </Link>
-          <Link to="/freelancer/settings" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg">
-            <FaCog className="mr-3 h-5 w-5" /> Settings
-          </Link>
+          <Link to="/freelancer/dashboard" className="flex items-center px-4 py-2.5 text-gray-700 bg-indigo-100 rounded-lg font-semibold"><FaUserCircle className="mr-3 h-5 w-5" /> Dashboard</Link>
+          <Link to="/freelancer/projects" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg"><FaShoppingBag className="mr-3 h-5 w-5" /> Browse Projects</Link>
+          <Link to="/freelancer/my-proposals" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg"><FaClipboardList className="mr-3 h-5 w-5" /> My Proposals</Link>
+          <Link to="/clients" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg"><FaUserCircle className="mr-3 h-5 w-5" /> View Clients</Link>
+          <Link to="/freelancer/accepted-proposals" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg"><FaFileContract className="mr-3 h-5 w-5" /> My Contracts</Link>
+          <Link to="/freelancer/dashboard/tasks" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg"><FaTasks className="mr-3 h-5 w-5" /> Task Progress</Link>
+          <Link to="/messages" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg"><FaEnvelope className="mr-3 h-5 w-5" /> Messages</Link>
+          <Link to="/freelancer/dashboard/earnings" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg"><FaMoneyBill className="mr-3 h-5 w-5" /> Earnings</Link>
+          <Link to="/freelancer/settings" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg"><FaCog className="mr-3 h-5 w-5" /> Settings</Link>
         </nav>
         <div className="p-4 border-t">
-          <button onClick={handleLogout} className="w-full flex items-center px-4 py-2.5 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg">
-            <FaSignOutAlt className="mr-3 h-5 w-5" /> Logout
-          </button>
+          <button onClick={handleLogout} className="w-full flex items-center px-4 py-2.5 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg"><FaSignOutAlt className="mr-3 h-5 w-5" /> Logout</button>
         </div>
       </aside>
-
-      {/* Main content */}
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto h-full flex flex-col">
         <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
-              Welcome, {profile?.name || 'Freelancer'}!
-            </h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Welcome, {profile?.name || 'Freelancer'}!</h1>
             <p className="text-gray-500 mt-2">Find new projects and manage your work.</p>
           </div>
           <div className="flex items-center space-x-4 w-full sm:w-auto">
             <div className="relative flex-1 sm:flex-none">
               <FaSearch className="absolute left-3 top-3 text-gray-400" />
-              <input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search projects..."
-                className="pl-10 pr-4 py-2 border rounded-lg w-full sm:w-96"
-              />
+              <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search projects..." className="pl-10 pr-4 py-2 border rounded-lg w-full sm:w-96" />
             </div>
-            <button className="lg:hidden p-2 bg-indigo-100 rounded-lg" onClick={() => setSidebarOpen(true)}>
-              <FaBars />
-            </button>
-            <Link to="/notifications" className="hidden sm:flex items-center text-gray-600 hover:text-gray-800">
+            <button className="lg:hidden p-2 bg-indigo-100 rounded-lg" onClick={() => setSidebarOpen(true)}><FaBars /></button>
+            <Link to="/notifications" className="hidden sm:flex items-center text-gray-600 hover:text-gray-800 relative">
               <FaBell />
+              {unreadNotifications > 0 && (<span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">{unreadNotifications}</span>)}
             </Link>
           </div>
         </header>
-
-        {/* ADDED: Routes component to render child pages */}
-        <Routes>
-            <Route path="/" element={<DashboardHome />} />
-            <Route path="/earnings" element={<FreelancerEarnings />} />
-            {/* You can add more routes here for other sidebar links if needed */}
-        </Routes>
-        
+        <div className="flex-1">
+            <Routes>
+              <Route path="/" element={<DashboardHome />} />
+              <Route path="/earnings" element={<FreelancerEarnings />} />
+              <Route path="/tasks" element={<TaskProgressPage />} />
+            </Routes>
+        </div>
       </main>
-
-      {/* Proposal Modal */}
       {showModal && selectedProject && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4">
           <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-lg">
             <h2 className="text-xl font-bold mb-4">Submit Proposal</h2>
             <p className="mb-2 text-gray-600">Project: {selectedProject.title}</p>
-            <textarea
-              placeholder="Write a cover letter..."
-              value={coverLetter}
-              onChange={(e) => setCoverLetter(e.target.value)}
-              className="w-full border rounded-lg p-3 mb-4"
-              rows={4}
-            />
-            <input
-              type="number"
-              placeholder="Your bid amount"
-              value={bidAmount}
-              onChange={(e) => setBidAmount(e.target.value)}
-              className="w-full border rounded-lg p-3 mb-4"
-            />
+            <textarea placeholder="Write a cover letter..." value={coverLetter} onChange={(e) => setCoverLetter(e.target.value)} className="w-full border rounded-lg p-3 mb-4" rows={4} />
+            <input type="number" placeholder="Your bid amount" value={bidAmount} onChange={(e) => setBidAmount(e.target.value)} className="w-full border rounded-lg p-3 mb-4" />
             <div className="flex flex-col sm:flex-row justify-end gap-3">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button>
               <button onClick={handleSubmitProposal} className="px-4 py-2 bg-indigo-600 text-white rounded-lg">Submit</button>
@@ -408,16 +377,7 @@ export default function FreelancerDashboard() {
           </div>
         </div>
       )}
-
-      {isEditModalOpen && (
-        <EditProfileModal
-          user={profile}
-          onClose={() => setIsEditModalOpen(false)}
-          onProfileUpdate={(updatedProfile) => {
-            setProfile(updatedProfile);
-          }}
-        />
-      )}
+      {isEditModalOpen && (<EditProfileModal user={profile} onClose={() => setIsEditModalOpen(false)} onProfileUpdate={(updatedProfile) => {setProfile(updatedProfile);}} />)}
     </div>
   );
 }
