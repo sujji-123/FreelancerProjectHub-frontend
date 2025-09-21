@@ -29,9 +29,9 @@ import TaskDetailsPage from './pages/TaskDetailsPage';
 import SettingsPage from './pages/SettingsPage';
 import ClientProposals from './pages/ClientProposals';
 import RateUserPage from './pages/RateUserPage';
-// --- IMPORT THE TWO NEW PAGES ---
 import FreelancerMyProposals from './pages/FreelancerMyProposals';
 import FreelancerMyContracts from './pages/FreelancerMyContracts';
+import ReviewsPage from './pages/ReviewsPage';
 
 function App() {
   return (
@@ -43,7 +43,6 @@ function App() {
           hideProgressBar={false}
         />
         <Routes>
-          {/* All your existing routes... */}
           <Route path="/signup" element={<Signup />} />
           <Route path="/verify" element={<Verify />} />
           <Route path="/login" element={<Login />} />
@@ -58,11 +57,10 @@ function App() {
           <Route path="/client/settings" element={<SettingsPage />} />
           <Route path="/freelancer/settings" element={<SettingsPage />} />
           <Route path="/client/proposals" element={<ClientProposals />} />
-
-          {/* --- NEW ROUTES ADDED FOR FREELANCER --- */}
           <Route path="/freelancer/my-proposals" element={<FreelancerMyProposals />} />
           <Route path="/freelancer/my-contracts" element={<FreelancerMyContracts />} />
-
+          <Route path="/client/rate-user" element={<RateUserPage />} />
+          <Route path="/freelancer/rate-user" element={<RateUserPage />} />
           <Route path="/project/:id" element={<ProjectDashboard />} />
           <Route path="/client/post-project" element={<PostProject />} />
           <Route path="/freelancer/projects" element={<FreelancerProjects />} />
@@ -71,12 +69,11 @@ function App() {
           <Route path="/freelancers" element={<ViewFreelancers />} />
           <Route path="/project/collaborate/:projectId" element={<ProjectCollab />} />
           <Route path="/client/payment" element={<ClientDashboard />} />
-          <Route path="/freelancer/earnings" element={<FreelancerDashboard />} />
+          <Route path="/freelancer/earnings" element={<FreelancerEarnings />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/messages" element={<MessagesPage />} />
           <Route path="/tasks" element={<TaskDetailsPage />} />
-          <Route path="/client/rate-user" element={<RateUserPage />} />
-          <Route path="/freelancer/rate-user" element={<RateUserPage />} />
+          <Route path="/reviews" element={<ReviewsPage />} />
         </Routes>
       </Router>
     </SocketProvider>

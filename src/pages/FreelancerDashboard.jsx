@@ -1,6 +1,5 @@
-// src/pages/FreelancerDashboard.jsx
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, Link, Routes, Route } from 'react-router-dom';
+import { useNavigate, Link, NavLink, Routes, Route } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import {
   FaUserCircle, FaCog, FaSignOutAlt, FaSearch, FaBell, FaStar,
@@ -10,7 +9,7 @@ import {
 import { getProjects } from '../services/projectService';
 import { getFreelancerProposals, createProposal, withdrawProposal } from '../services/proposalService';
 import { getProfile, uploadProfilePicture } from '../services/userService';
-import { getBalance } from '../services/paymentService'; // Import getBalance
+import { getBalance } from '../services/paymentService';
 import { toast } from 'react-toastify';
 import EditProfileModal from '../components/Profile/EditProfileModal';
 import FreelancerEarnings from './FreelancerEarnings';
@@ -45,7 +44,7 @@ export default function FreelancerDashboard() {
   const [coverLetter, setCoverLetter] = useState('');
   const [bidAmount, setBidAmount] = useState('');
   const [notifications, setNotifications] = useState([]);
-  const [earnings, setEarnings] = useState(0); // State for dynamic earnings
+  const [earnings, setEarnings] = useState(0); 
   
   useEffect(() => {
     const fetchData = async () => {
@@ -55,14 +54,14 @@ export default function FreelancerDashboard() {
           getProjects(),
           getFreelancerProposals(),
           notificationService.getNotifications(),
-          getBalance() // Fetch balance
+          getBalance()
         ]);
         
         setProfile(profileRes.data);
         setProjects(projectRes.data || []);
         setProposals(proposalRes.data || []);
         setNotifications(notificationRes.data || []);
-        setEarnings(balanceRes.data.balance || 0); // Set dynamic earnings
+        setEarnings(balanceRes.data.balance || 0);
 
       } catch (error) {
         if (error.response && error.response.status === 404) {
@@ -175,7 +174,7 @@ export default function FreelancerDashboard() {
               <div className="flex flex-wrap items-center space-x-2 text-sm text-gray-500">
                 <span>Web Developer</span>
                 <span className="flex items-center text-yellow-400"><FaStar className="mr-1" />{profile?.rating || 0}/5</span>
-                <span>({profile?.reviews?.length || 0} reviews)</span>
+                <span>({(profile?.reviews?.length || 0)} reviews)</span>
               </div>
               <div className="mt-3 flex flex-wrap gap-2">{profile?.skills.map(skill => (<span key={skill} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">{skill}</span>))}</div>
             </div>
@@ -253,24 +252,26 @@ export default function FreelancerDashboard() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <aside className={`fixed lg:static top-0 left-0 h-full w-64 bg-white shadow-lg transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 transition-transform duration-300 z-50 flex flex-col`}>
-        <div className="p-6 text-2xl font-bold text-indigo-600 border-b-2 border-gray-100 flex justify-between items-center">
+      <aside className={`fixed lg:static top-0 left-0 h-full w-64 bg-white transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 transition-transform duration-300 z-50 flex flex-col border-r`}>
+        <div className="p-6 text-2xl font-bold text-indigo-600 border-b flex justify-between items-center">
           FreelancerHub
           <button className="lg:hidden text-gray-600" onClick={() => setSidebarOpen(false)}>✖</button>
         </div>
         <nav className="flex-grow p-4 space-y-2">
-          <Link to="/freelancer/dashboard" className="flex items-center px-4 py-2.5 text-gray-700 bg-indigo-100 rounded-lg font-semibold"><FaUserCircle className="mr-3 h-5 w-5" /> Dashboard</Link>
-          <Link to="/freelancer/projects" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg"><FaShoppingBag className="mr-3 h-5 w-5" /> Browse Projects</Link>
-          <Link to="/freelancer/my-proposals" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg"><FaClipboardList className="mr-3 h-5 w-5" /> My Proposals</Link>
-          <Link to="/clients" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg"><FaUserCircle className="mr-3 h-5 w-5" /> View Clients</Link>
-          <Link to="/freelancer/my-contracts" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg"><FaFileContract className="mr-3 h-5 w-5" /> My Contracts</Link>
-          <Link to="/freelancer/tasks" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg"><FaTasks className="mr-3 h-5 w-5" /> Task Progress</Link>
-          <Link to="/messages" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg"><FaEnvelope className="mr-3 h-5 w-5" /> Messages</Link>
-          <Link to="/freelancer/earnings" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg"><FaMoneyBill className="mr-3 h-5 w-5" /> Earnings</Link>
-          <Link to="/freelancer/settings" className="flex items-center px-4 py-2.5 text-gray-600 hover:bg-indigo-50 rounded-lg"><FaCog className="mr-3 h-5 w-5" /> Settings</Link>
+          <NavLink to="/freelancer/dashboard" className={({isActive}) => `flex items-center px-4 py-2.5 rounded-lg ${isActive ? 'bg-indigo-100 text-gray-700 font-semibold' : 'text-gray-600 hover:bg-indigo-50'}`}><FaUserCircle className="mr-3 h-5 w-5" /> Dashboard</NavLink>
+          <NavLink to="/freelancer/projects" className={({isActive}) => `flex items-center px-4 py-2.5 rounded-lg ${isActive ? 'bg-indigo-100 text-gray-700 font-semibold' : 'text-gray-600 hover:bg-indigo-50'}`}><FaShoppingBag className="mr-3 h-5 w-5" /> Browse Projects</NavLink>
+          <NavLink to="/freelancer/my-proposals" className={({isActive}) => `flex items-center px-4 py-2.5 rounded-lg ${isActive ? 'bg-indigo-100 text-gray-700 font-semibold' : 'text-gray-600 hover:bg-indigo-50'}`}><FaClipboardList className="mr-3 h-5 w-5" /> My Proposals</NavLink>
+          <NavLink to="/clients" className={({isActive}) => `flex items-center px-4 py-2.5 rounded-lg ${isActive ? 'bg-indigo-100 text-gray-700 font-semibold' : 'text-gray-600 hover:bg-indigo-50'}`}><FaUserCircle className="mr-3 h-5 w-5" /> View Clients</NavLink>
+          <NavLink to="/freelancer/my-contracts" className={({isActive}) => `flex items-center px-4 py-2.5 rounded-lg ${isActive ? 'bg-indigo-100 text-gray-700 font-semibold' : 'text-gray-600 hover:bg-indigo-50'}`}><FaFileContract className="mr-3 h-5 w-5" /> My Contracts</NavLink>
+          <NavLink to="/freelancer/tasks" className={({isActive}) => `flex items-center px-4 py-2.5 rounded-lg ${isActive ? 'bg-indigo-100 text-gray-700 font-semibold' : 'text-gray-600 hover:bg-indigo-50'}`}><FaTasks className="mr-3 h-5 w-5" /> Task Progress</NavLink>
+          <NavLink to="/messages" className={({isActive}) => `flex items-center px-4 py-2.5 rounded-lg ${isActive ? 'bg-indigo-100 text-gray-700 font-semibold' : 'text-gray-600 hover:bg-indigo-50'}`}><FaEnvelope className="mr-3 h-5 w-5" /> Messages</NavLink>
+          <NavLink to="/freelancer/earnings" className={({isActive}) => `flex items-center px-4 py-2.5 rounded-lg ${isActive ? 'bg-indigo-100 text-gray-700 font-semibold' : 'text-gray-600 hover:bg-indigo-50'}`}><FaMoneyBill className="mr-3 h-5 w-5" /> Earnings</NavLink>
+          <NavLink to="/freelancer/rate-user" className={({isActive}) => `flex items-center px-4 py-2.5 rounded-lg ${isActive ? 'bg-indigo-100 text-gray-700 font-semibold' : 'text-gray-600 hover:bg-indigo-50'}`}><FaStar className="mr-3 h-5 w-5" /> Rate a Client</NavLink>
+          <NavLink to="/reviews" className={({isActive}) => `flex items-center px-4 py-2.5 rounded-lg ${isActive ? 'bg-indigo-100 text-gray-700 font-semibold' : 'text-gray-600 hover:bg-indigo-50'}`}><FaStar className="mr-3 h-5 w-5" /> My Reviews</NavLink>
+          <NavLink to="/freelancer/settings" className={({isActive}) => `flex items-center px-4 py-2.5 rounded-lg ${isActive ? 'bg-indigo-100 text-gray-700 font-semibold' : 'text-gray-600 hover:bg-indigo-50'}`}><FaCog className="mr-3 h-5 w-5" /> Settings</NavLink>
         </nav>
-        <div className="p-4 border-t">
-          <button onClick={handleLogout} className="w-full flex items-center px-4 py-2.5 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg"><FaSignOutAlt className="mr-3 h-5 w-5" /> Logout</button>
+        <div className="p-2 border-t">
+          <button onClick={handleLogout} className="w-full flex items-center px-4 py-2 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg"><FaSignOutAlt className="mr-3 h-5 w-5" /> Logout</button>
         </div>
       </aside>
       <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto h-full flex flex-col">

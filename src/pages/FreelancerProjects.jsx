@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { getProjects } from '../services/projectService';
 import { createProposal, getFreelancerProposals, withdrawProposal } from '../services/proposalService';
 import { toast } from 'react-toastify';
+import { FaUserCircle } from 'react-icons/fa';
 
 const readUser = () => {
   try { return JSON.parse(localStorage.getItem('user') || 'null'); } catch { return null; }
@@ -101,11 +102,18 @@ export default function FreelancerProjects() {
             {openProjects.map(p => {
               const myProposal = proposals.find(pr => String(pr.project && (pr.project._id || pr.project)) === String(p._id));
               return (
-                <div key={p._id} className="bg-white rounded-2xl shadow p-4">
-                  <h2 className="text-lg font-semibold">{p.title}</h2>
-                  <p className="text-gray-600 whitespace-pre-line mt-1">{p.description}</p>
-                  <div className="text-sm text-gray-500 mt-2">Budget: ${p.budget}</div>
-                  <div className="mt-3">
+                <div key={p._id} className="bg-white rounded-2xl shadow p-4 flex flex-col">
+                  <div className="flex-grow">
+                    <h2 className="text-lg font-semibold">{p.title}</h2>
+                    <p className="text-gray-600 whitespace-pre-line mt-1">{p.description}</p>
+                    <div className="text-sm text-gray-500 mt-2">Budget: ${p.budget}</div>
+                    {/* --- CHANGE: CLIENT NAME DISPLAYED HERE --- */}
+                    <div className="flex items-center text-sm text-gray-500 mt-1">
+                      <FaUserCircle className="mr-1 text-gray-400" />
+                      Client: {p.client?.name || 'N/A'}
+                    </div>
+                  </div>
+                  <div className="mt-3 pt-3 border-t">
                     {(() => {
                       if (myProposal) {
                         if (myProposal.status === "pending") {
@@ -122,7 +130,6 @@ export default function FreelancerProjects() {
                         if (myProposal.status === "rejected") {
                           return (<button disabled className="w-full bg-red-100 text-red-700 py-2 rounded-lg font-medium">Rejected ❌</button>);
                         }
-                        // Fallback for any other status
                         return (<button disabled className="w-full bg-gray-300 text-gray-700 py-2 rounded-lg font-medium">{myProposal.status}</button>);
                       }
                       return (

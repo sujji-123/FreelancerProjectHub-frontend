@@ -26,29 +26,37 @@ export default function RateUserPage() {
 
     const fetchPageData = async () => {
         try {
-            const res = await getCollaboratedUsers();
-            setCollaborators(res.data || []);
+            const usersRes = await getCollaboratedUsers();
+            setCollaborators(usersRes.data || []);
             
-            const projectRes = user.role === 'client' 
-                ? await projectService.getMyProjects() 
-                : await getFreelancerProposals();
-            
-            const projectList = user.role === 'client' ? res.data : projectRes.data.map(p => p.project);
-            setProjects(projectList.filter(Boolean) || []);
+            let projectData = [];
+            if (user.role === 'client') {
+                const projectsRes = await projectService.getMyProjects();
+                projectData = projectsRes.data || [];
+            } else {
+                const proposalsRes = await getFreelancerProposals();
+                // Extract the full project object from each proposal
+                projectData = (proposalsRes.data || []).map(p => p.project).filter(Boolean);
+            }
+            setProjects(projectData);
 
         } catch (err) {
             toast.error("Failed to load users you've worked with.");
+            console.error("Fetch data error:", err);
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchPageData();
-    }, [user.role]);
+        if (user) {
+            fetchPageData();
+        }
+    }, [user]);
 
     const projectsWithSelectedUser = projects.filter(p => {
         if (!selectedUser || !p) return false;
+        
         const projectClient = p.client?._id || p.client;
         const projectFreelancer = p.assignedFreelancer?._id || p.assignedFreelancer;
 

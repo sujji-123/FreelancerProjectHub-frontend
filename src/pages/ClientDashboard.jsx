@@ -5,7 +5,7 @@ import { jwtDecode } from "jwt-decode";
 import {
   FaUserCircle, FaBriefcase, FaCog, FaSignOutAlt, FaPlusSquare, FaSearch, 
   FaBell, FaCheckCircle, FaEnvelope, FaMoneyBill, FaInbox, FaComment, 
-  FaSpinner, FaCircle, FaEdit, FaStar // ADDED: FaStar import
+  FaSpinner, FaCircle, FaEdit, FaStar, FaUserFriends
 } from "react-icons/fa";
 import projectService from "../services/projectService";
 import proposalService from "../services/proposalService";
@@ -252,13 +252,18 @@ export default function ClientDashboard() {
       <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="md:hidden fixed top-4 left-4 z-50 p-2 bg-indigo-600 text-white rounded-md shadow-lg">{isSidebarOpen ? '✕' : '☰'}</button>
       <aside className={`w-64 bg-white border-r flex flex-col fixed md:relative inset-y-0 left-0 z-40 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 transition-transform duration-300 ease-in-out`}>
         <div className="px-6 py-5 flex items-center gap-3 border-b">
-          <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
-            <label htmlFor="profile-picture-upload" className="cursor-pointer">{profile?.profilePicture ? (<img src={`http://localhost:5001/${profile.profilePicture}`} alt="Profile" className="w-10 h-10 rounded-full object-cover" />) : (<FaBriefcase className="text-indigo-600" />)}</label>
+          <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center relative">
+            <label htmlFor="profile-picture-upload" className="cursor-pointer">
+                {profile?.profilePicture ? (<img src={`http://localhost:5001/${profile.profilePicture}`} alt="Profile" className="w-10 h-10 rounded-full object-cover" />) : (<FaBriefcase className="text-indigo-600" />)}
+            </label>
             <input type="file" id="profile-picture-upload" className="hidden" onChange={handleProfilePictureChange} />
           </div>
           <div>
-            <p className="font-semibold text-gray-800">Client Panel</p>
-            <p className="text-xs text-gray-500">{profile?.email || "client@demo.com"}</p>
+            <p className="font-semibold text-gray-800">{profile?.name || "Client"}</p>
+            <div className="flex items-center text-xs text-gray-500">
+                <FaStar className="text-yellow-400 mr-1" />
+                <span>{profile?.rating || 0}/5 stars</span>
+            </div>
             <button onClick={() => setIsEditModalOpen(true)} className="mt-1 text-xs text-indigo-600 hover:underline flex items-center gap-1">
               <FaEdit /> Edit Profile
             </button>
@@ -267,18 +272,13 @@ export default function ClientDashboard() {
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           <Link className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700" to="/client/dashboard"><FaInbox /> Dashboard</Link>
           <Link className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700" to="/client/post-project"><FaPlusSquare /> Post New Project</Link>
-          <Link to="/freelancers" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700"><FaUserCircle /> View Freelancers</Link>
-          
-          {/* --- NEW LINK ADDED HERE --- */}
-          <div className="mt-4">
-            <p className="px-3 text-xs uppercase tracking-wide text-gray-400 mb-2">My Projects</p>
-            <Link to="/client/my-projects" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700">All Projects</Link>
-          </div>
-
+          <Link to="/freelancers" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700"><FaUserFriends /> View Freelancers</Link>
+          <Link to="/client/my-projects" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700"><FaBriefcase /> All My Projects</Link>
           <Link className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700" to="/client/proposals"><FaEnvelope /> Proposals Received</Link>
-          <Link className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700" to="/messages"><FaUserCircle /> Messages</Link>
+          <Link className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700" to="/messages"><FaComment /> Messages</Link>
           <Link className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700" to="/client/dashboard/payment"><FaMoneyBill /> Payments</Link>
           <Link className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700" to="/client/rate-user"><FaStar /> Rate a Freelancer</Link>
+          <Link className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700" to="/reviews"><FaStar /> My Reviews</Link>
         </nav>
         <div className="p-4 border-t flex items-center justify-between text-gray-600">
           <Link to="/client/settings" className="flex items-center gap-2 hover:text-gray-800"><FaCog /> Settings</Link>
