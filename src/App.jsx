@@ -5,7 +5,6 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { SocketProvider } from './context/SocketContext';
 
-// Import all your existing pages...
 import Signup from './pages/Signup';
 import Verify from './pages/Verify';
 import Login from './pages/Login';
@@ -68,8 +67,11 @@ function App() {
           <Route path="/clients" element={<ViewClients />} />
           <Route path="/freelancers" element={<ViewFreelancers />} />
           <Route path="/project/collaborate/:projectId" element={<ProjectCollab />} />
-          <Route path="/client/payment" element={<ClientDashboard />} />
+          
+          {/* --- FIX: Dedicated routes for payment pages --- */}
+          <Route path="/client/payment" element={<ClientPayment />} />
           <Route path="/freelancer/earnings" element={<FreelancerEarnings />} />
+
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/messages" element={<MessagesPage />} />
           <Route path="/tasks" element={<TaskDetailsPage />} />

@@ -15,7 +15,6 @@ export const changePassword = (passwordData) => api.put('/users/profile/change-p
 
 export const updateNotificationPreferences = (preferences) => api.put('/users/profile/notification-preferences', preferences);
 
-// --- NEW FUNCTION ADDED ---
 // This function was missing and is required for the RateUserPage to work.
 export const getCollaboratedUsers = () => api.get('/users/collaborated');
 

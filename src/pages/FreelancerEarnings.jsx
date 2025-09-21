@@ -2,42 +2,47 @@
 import React, { useEffect, useState } from "react";
 import {
   createBankAccount,
-  requestOtp,
-  verifyLogin,
+  requestBankLoginOtp,
+  verifyBankLogin,
   getBalance,
-  withdrawAmt,
+  withdraw,
   getTransactions,
 } from "../services/paymentService";
 import { toast } from "react-toastify";
+import { FaEye, FaUniversity, FaHistory } from "react-icons/fa";
 
 export default function FreelancerEarnings() {
-    const [view, setView] = useState('welcome'); // 'welcome', 'create', 'login', 'otp', 'dashboard'
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    
-    // State for the creation form
+    const [view, setView] = useState('welcome');
+    const [isLoggedIn, setIsLoggedIn] = useState(sessionStorage.getItem('bankAccountLoggedIn') === 'true');
     const [createDetails, setCreateDetails] = useState({ fullName: "", email: "", phone: "", bankName: "", pin: "" });
-    
-    // State for the login process
     const [loginEmail, setLoginEmail] = useState("");
     const [loginPin, setLoginPin] = useState("");
     const [otp, setOtp] = useState("");
-
-    // State for the dashboard
     const [balance, setBalance] = useState(0);
     const [withdrawAmount, setWithdrawAmount] = useState("");
     const [transactions, setTransactions] = useState([]);
+    const [dashboardView, setDashboardView] = useState('main');
+    const [showBalance, setShowBalance] = useState(false);
 
-    // ✅ UseEffect to fetch balance & transactions after login
+    // --- NEW STATE FOR TRANSACTION HISTORY ---
+    const [showTransactions, setShowTransactions] = useState(false);
+
+    useEffect(() => {
+        if (isLoggedIn) {
+            setView('dashboard');
+        }
+    }, [isLoggedIn]);
+
     useEffect(() => {
         if (isLoggedIn) {
             const fetchBalanceAndTx = async () => {
                 try {
                     const balRes = await getBalance();
                     setBalance(balRes.data.balance);
+                    fetchTx();
                 } catch (err) {
                     console.error("Failed to fetch balance:", err);
                 }
-                fetchTx();
             };
             fetchBalanceAndTx();
         }
@@ -52,8 +57,8 @@ export default function FreelancerEarnings() {
         try {
             await createBankAccount(createDetails);
             toast.success("Bank account created successfully! Please log in.");
-            setView('login'); // Switch to login view
-            setLoginEmail(createDetails.email); // Pre-fill email
+            setView('login');
+            setLoginEmail(createDetails.email);
         } catch (err) {
             toast.error(err?.response?.data?.message || "Error creating account");
         }
@@ -66,8 +71,8 @@ export default function FreelancerEarnings() {
             return;
         }
         try {
-            await requestOtp({ email: loginEmail });
-            setView('otp'); // Move to OTP entry
+            await requestBankLoginOtp({ email: loginEmail });
+            setView('otp');
             toast.info("OTP has been sent to your email.");
         } catch (err) {
             toast.error(err?.response?.data?.message || "This email does not have a bank account.");
@@ -77,11 +82,12 @@ export default function FreelancerEarnings() {
     const handleVerify = async (e) => {
         e.preventDefault();
         try {
-            const res = await verifyLogin({ email: loginEmail, otp, pin: loginPin });
+            const res = await verifyBankLogin({ email: loginEmail, otp, pin: loginPin });
+            sessionStorage.setItem('bankAccountLoggedIn', 'true');
             setIsLoggedIn(true);
             setBalance(res.data.account.balance);
             fetchTx();
-            setView('dashboard'); // Move to dashboard
+            setView('dashboard');
             toast.success("Logged in successfully!");
         } catch (err) {
             toast.error(err?.response?.data?.message || "Login failed. Please check your OTP and PIN.");
@@ -94,10 +100,11 @@ export default function FreelancerEarnings() {
             return;
         }
         try {
-            const res = await withdrawAmt({ amount: Number(withdrawAmount) });
+            const res = await withdraw({ amount: Number(withdrawAmount) });
             setBalance(res.data.balance);
             setWithdrawAmount("");
             fetchTx();
+            setDashboardView('main');
             toast.success("Withdrawal successful!");
         } catch (err) {
             toast.error(err?.response?.data?.message || "Withdrawal failed");
@@ -113,7 +120,84 @@ export default function FreelancerEarnings() {
         }
     };
 
+    const handleLogout = () => {
+        sessionStorage.removeItem('bankAccountLoggedIn');
+        setIsLoggedIn(false);
+        setView('welcome');
+        toast.info("You have been logged out of the payment gateway.");
+    };
+
+    const toggleBalance = async () => {
+        if (!showBalance) {
+            try {
+                const res = await getBalance();
+                setBalance(res.data.balance);
+            } catch (err) { console.error("Failed to fetch balance:", err); }
+        }
+        setShowBalance(!showBalance);
+    };
+
+    const renderDashboard = () => (
+         <div className="p-8 border rounded-lg shadow-sm bg-white">
+            <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-semibold">Earnings Dashboard</h2>
+                <button onClick={handleLogout} className="text-sm text-red-600 hover:underline">Logout of Gateway</button>
+            </div>
+            
+            {dashboardView === 'main' && (
+                <div className="space-y-4">
+                    <div className="p-4 border rounded-lg flex items-center justify-between">
+                        <div>
+                            <p className="text-gray-500">Available Balance</p>
+                             <p className={`text-3xl font-bold transition-all duration-300 ${showBalance ? 'blur-none' : 'blur-md'}`}>
+                                ${showBalance ? balance.toFixed(2) : 'XXXX.XX'}
+                            </p>
+                        </div>
+                        <button onClick={toggleBalance} className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                           <FaEye /> {showBalance ? 'Hide' : 'View'} Balance
+                        </button>
+                    </div>
+                    <button onClick={() => setDashboardView('withdraw')} className="w-full flex flex-col items-center justify-center p-6 bg-red-50 hover:bg-red-100 rounded-lg border-2 border-dashed border-red-200 text-red-700 transition-colors">
+                        <FaUniversity className="text-3xl mb-2" />
+                        <span className="font-semibold">Withdraw Funds</span>
+                    </button>
+                </div>
+            )}
+
+            {dashboardView === 'withdraw' && (
+                <div className="max-w-md">
+                    <h3 className="font-semibold text-xl mb-4">Withdraw Funds</h3>
+                    <input type="number" placeholder="Amount to withdraw" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} className="w-full p-2 border rounded mb-2" />
+                    <div className="flex gap-4">
+                        <button onClick={handleWithdraw} className="flex-1 px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Withdraw</button>
+                        <button onClick={() => setDashboardView('main')} className="flex-1 px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Back</button>
+                    </div>
+                </div>
+            )}
+
+            <div className="mt-8">
+                <div className="flex justify-between items-center mb-2">
+                    <h3 className="font-semibold text-lg">Transaction History</h3>
+                    <button onClick={() => setShowTransactions(!showTransactions)} className="text-sm text-indigo-600 hover:underline flex items-center gap-1">
+                        <FaHistory /> {showTransactions ? 'Hide' : 'View'} History
+                    </button>
+                </div>
+                {showTransactions && (
+                    <ul className="divide-y max-h-60 overflow-y-auto border rounded-lg p-2">
+                        {transactions.length > 0 ? transactions.map(tx => (
+                            <li key={tx._id} className="py-2 flex justify-between">
+                                <span>{tx.type.toUpperCase()}: ${tx.amount}</span>
+                                <span className="text-gray-500">{new Date(tx.createdAt).toLocaleString()}</span>
+                            </li>
+                        )) : <p className="text-gray-500 p-4 text-center">No transactions yet.</p>}
+                    </ul>
+                )}
+            </div>
+        </div>
+    );
+
     const renderContent = () => {
+        // The create, login, otp, and welcome views remain unchanged.
         switch(view) {
             case 'create':
                 return (
@@ -153,31 +237,8 @@ export default function FreelancerEarnings() {
                    </form>
                );
             case 'dashboard':
-                return (
-                    <div className="p-8 border rounded-lg shadow-sm bg-white">
-                        <h2 className="text-2xl font-semibold">Earnings Dashboard</h2>
-                        <p className="text-4xl font-bold my-4">Available Balance: ${balance.toFixed(2)}</p>
-                        
-                        <div className="max-w-md">
-                            <h3 className="font-semibold text-lg mb-2">Withdraw Funds</h3>
-                            <input type="number" placeholder="Amount to withdraw" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} className="w-full p-2 border rounded mb-2" />
-                            <button onClick={handleWithdraw} className="w-full px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Withdraw</button>
-                        </div>
-    
-                        <div className="mt-8">
-                            <h3 className="font-semibold text-lg mb-2">Transaction History</h3>
-                            <ul className="divide-y max-h-60 overflow-y-auto">
-                                {transactions.length > 0 ? transactions.map(tx => (
-                                    <li key={tx._id} className="py-2 flex justify-between">
-                                        <span>{tx.type.toUpperCase()}: ${tx.amount}</span>
-                                        <span className="text-gray-500">{new Date(tx.createdAt).toLocaleString()}</span>
-                                    </li>
-                                )) : <p className="text-gray-500">No transactions yet.</p>}
-                            </ul>
-                        </div>
-                    </div>
-                );
-            default: // 'welcome' view
+                return renderDashboard();
+            default:
                 return (
                     <div className="text-center p-8 border rounded-lg shadow-sm bg-white">
                         <h2 className="text-2xl font-semibold mb-4 text-gray-800">Welcome to Your Earnings Page</h2>
