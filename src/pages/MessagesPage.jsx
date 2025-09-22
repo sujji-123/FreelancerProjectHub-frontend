@@ -125,7 +125,6 @@ export default function MessagesPage() {
     
     const handleSelectUser = (user) => {
         setSelectedUser(user);
-        // Add user to conversations if not already there
         if (!conversations.some(c => c.user._id === user._id)) {
             setConversations(prev => [{ user, lastMessage: null, unreadCount: 0 }, ...prev]);
         }
@@ -146,7 +145,7 @@ export default function MessagesPage() {
 
     return (
         <div className="flex h-screen bg-gray-100">
-            <aside className="w-1/3 md:w-1/4 bg-white border-r overflow-y-auto">
+            <aside className={`${selectedUser ? 'hidden' : 'flex'} md:flex flex-col w-full md:w-1/3 lg:w-1/4 bg-white border-r overflow-y-auto`}>
                 <div className="p-4 border-b">
                     <Link to={currentUser.role === 'client' ? '/client/dashboard' : '/freelancer/dashboard'} className="text-indigo-600 flex items-center gap-2">
                         <FaArrowLeft /> Back to Dashboard
@@ -219,10 +218,13 @@ export default function MessagesPage() {
                 </div>
             </aside>
 
-            <main className="flex-1 flex flex-col">
+            <main className={`${selectedUser ? 'flex' : 'hidden'} md:flex flex-1 flex-col`}>
                 {selectedUser ? (
                     <>
                         <header className="bg-white p-4 border-b flex items-center">
+                             <button onClick={() => setSelectedUser(null)} className="md:hidden mr-4 text-gray-600">
+                                 <FaArrowLeft />
+                             </button>
                              <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold mr-3 flex-shrink-0">
                                 {selectedUser.profilePicture ? (<img src={`http://localhost:5001/${selectedUser.profilePicture}`} alt={selectedUser.name} className="w-10 h-10 rounded-full object-cover" />) : (<span>{selectedUser.name?.charAt(0).toUpperCase() || 'U'}</span>)}
                             </div>

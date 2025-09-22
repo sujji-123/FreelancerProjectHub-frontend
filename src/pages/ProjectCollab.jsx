@@ -184,15 +184,15 @@ const ProjectCollab = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="bg-white border p-4 rounded-lg shadow-sm lg:col-span-2">
                     <h2 className="text-xl font-semibold mb-4 text-gray-700">Tasks</h2>
-                    <div className="flex mb-4 gap-2">
+                    <div className="flex flex-col sm:flex-row mb-4 gap-2">
                         <input type="text" className="border p-2 w-full rounded-md" placeholder="Add a new task..." value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddTask()} />
                         <button className="bg-indigo-600 text-white px-4 py-2 rounded-md" onClick={handleAddTask}>Add</button>
                     </div>
                     <ul className="space-y-2">
                         {tasks.map((task) => (
-                            <li key={task._id} className="flex justify-between items-center p-2 rounded-md bg-gray-50">
+                            <li key={task._id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-2 rounded-md bg-gray-50">
                                 <span className={task.status === 'done' ? 'line-through text-gray-500' : ''}>{task.title}</span>
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 mt-2 sm:mt-0">
                                     {task.status === 'todo' && (
                                         <button className="text-sm text-yellow-600" onClick={() => handleUpdateTaskStatus(task._id, 'inprogress')}>In Progress</button>
                                     )}
@@ -219,7 +219,7 @@ const ProjectCollab = () => {
                         ))}
                         <div ref={messagesEndRef} />
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                         <input type="text" className="border p-2 w-full rounded-md" placeholder="Type a message..." value={newMessageContent} onChange={(e) => setNewMessageContent(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()} />
                         <button className="bg-indigo-600 text-white px-4 py-2 rounded-md" onClick={handleSendMessage}>Send</button>
                     </div>
@@ -227,9 +227,9 @@ const ProjectCollab = () => {
 
                 <div className="bg-white border p-4 rounded-lg shadow-sm lg:col-span-3">
                     <h2 className="text-xl font-semibold mb-4 text-gray-700">Deliverables</h2>
-                    <div className="flex items-center gap-4">
-                        <input id="file-input" type="file" className="flex-1" onChange={(e) => setFile(e.target.files[0])} />
-                        <button className="bg-green-600 text-white px-4 py-2 rounded-md" onClick={handleUploadDeliverable}>Upload</button>
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                        <input id="file-input" type="file" className="flex-1 w-full" onChange={(e) => setFile(e.target.files[0])} />
+                        <button className="bg-green-600 text-white px-4 py-2 rounded-md w-full sm:w-auto" onClick={handleUploadDeliverable}>Upload</button>
                     </div>
                     <div className="mt-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                         {deliverables.map((d) => (
@@ -246,8 +246,8 @@ const ProjectCollab = () => {
                 </div>
             </div>
             {selectedImage && (
-                <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" onClick={() => setSelectedImage(null)}>
-                    <img src={selectedImage} alt="Full screen deliverable" className="max-h-screen max-w-screen" />
+                <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4" onClick={() => setSelectedImage(null)}>
+                    <img src={selectedImage} alt="Full screen deliverable" className="max-h-full max-w-full" />
                 </div>
             )}
         </div>

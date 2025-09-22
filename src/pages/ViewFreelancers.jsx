@@ -24,9 +24,9 @@ export default function ViewFreelancers() {
     if (loading) return <div className="p-6">Loading freelancers...</div>;
 
     return (
-        <div className="p-6">
-            <h1 className="text-2xl font-bold mb-4">All Freelancers</h1>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="p-4 sm:p-6 lg:p-8">
+            <h1 className="text-2xl md:text-3xl font-bold mb-4">All Freelancers</h1>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {freelancers.map(freelancer => (
                     <div key={freelancer._id} className="bg-white rounded-lg shadow p-4">
                         <div className="flex items-center">
@@ -40,11 +40,9 @@ export default function ViewFreelancers() {
                             <div className="ml-4">
                                 <h2 className="text-lg font-semibold">{freelancer.name}</h2>
                                 <p className="text-gray-500 text-sm">{freelancer.email}</p>
-                                {/* THIS IS THE ADDED LINE */}
-                                <p className="text-xs text-red-500 mt-1">ID: {freelancer._id}</p>
-                                <div className="mt-2">
+                                <div className="mt-2 flex flex-wrap gap-1">
                                     {freelancer.skills.map(skill => (
-                                        <span key={skill} className="text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded-full mr-1">{skill}</span>
+                                        <span key={skill} className="text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded-full">{skill}</span>
                                     ))}
                                 </div>
                             </div>

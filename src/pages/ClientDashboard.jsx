@@ -276,11 +276,7 @@ export default function ClientDashboard() {
           <Link to="/client/my-projects" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700"><FaBriefcase /> All My Projects</Link>
           <Link className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700" to="/client/proposals"><FaEnvelope /> Proposals Received</Link>
           <Link className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700" to="/messages"><FaComment /> Messages</Link>
-          
-          {/* --- MODIFICATION START --- */}
           <Link className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700" to="/client/payment"><FaMoneyBill /> Payments</Link>
-          {/* --- MODIFICATION END --- */}
-          
           <Link className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700" to="/client/rate-user"><FaStar /> Rate a Freelancer</Link>
           <Link className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700" to="/reviews"><FaStar /> My Reviews</Link>
         </nav>

@@ -258,7 +258,9 @@ export default function FreelancerDashboard() {
           FreelancerHub
           <button className="lg:hidden text-gray-600" onClick={() => setSidebarOpen(false)}>✖</button>
         </div>
-        <nav className="flex-grow p-4 space-y-2">
+        {/* --- MODIFICATION START --- */}
+        <nav className="flex-grow p-4 space-y-2 overflow-y-auto">
+        {/* --- MODIFICATION END --- */}
           <NavLink to="/freelancer/dashboard" className={({isActive}) => `flex items-center px-4 py-2.5 rounded-lg ${isActive ? 'bg-indigo-100 text-gray-700 font-semibold' : 'text-gray-600 hover:bg-indigo-50'}`}><FaUserCircle className="mr-3 h-5 w-5" /> Dashboard</NavLink>
           <NavLink to="/freelancer/projects" className={({isActive}) => `flex items-center px-4 py-2.5 rounded-lg ${isActive ? 'bg-indigo-100 text-gray-700 font-semibold' : 'text-gray-600 hover:bg-indigo-50'}`}><FaShoppingBag className="mr-3 h-5 w-5" /> Browse Projects</NavLink>
           <NavLink to="/freelancer/my-proposals" className={({isActive}) => `flex items-center px-4 py-2.5 rounded-lg ${isActive ? 'bg-indigo-100 text-gray-700 font-semibold' : 'text-gray-600 hover:bg-indigo-50'}`}><FaClipboardList className="mr-3 h-5 w-5" /> My Proposals</NavLink>

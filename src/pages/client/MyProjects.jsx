@@ -1,15 +1,16 @@
+// src/pages/client/MyProjects.jsx
 import React, { useEffect, useState } from "react";
 import projectService from "../../services/projectService";
 import { toast } from "react-toastify";
-import { FaStar } from 'react-icons/fa'; // IMPORT FaStar
-import FeedbackModal from '../../components/Feedback/FeedbackModal'; // IMPORT FeedbackModal
+import { FaStar } from 'react-icons/fa';
+import FeedbackModal from '../../components/Feedback/FeedbackModal';
 
 export default function MyProjects() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingProject, setEditingProject] = useState(null);
   const [form, setForm] = useState({ title: "", description: "", budget: 0 });
-  const [selectedProjectForFeedback, setSelectedProjectForFeedback] = useState(null); // ADDED STATE FOR MODAL
+  const [selectedProjectForFeedback, setSelectedProjectForFeedback] = useState(null);
 
   const fetchMyProjects = async () => {
     setLoading(true);
@@ -69,14 +70,14 @@ export default function MyProjects() {
       );
       toast.success("Project updated");
       setEditingProject(null);
-    } catch (err) { // --- BRACES ADDED HERE ---
+    } catch (err) {
       console.error("Update failed:", err);
       toast.error("Update failed");
     }
   };
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">My Projects</h1>
       </div>
@@ -91,7 +92,7 @@ export default function MyProjects() {
           </p>
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map((project) => (
             <div
               key={project._id}
@@ -182,7 +183,7 @@ export default function MyProjects() {
       )}
       
       {editingProject && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50 p-4">
           <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-lg">
             <h2 className="text-xl font-bold mb-4">Edit Project</h2>
             <form onSubmit={handleUpdateSubmit} className="space-y-4">
