@@ -1,3 +1,4 @@
+// src/pages/MessagesPage.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
@@ -29,6 +30,21 @@ export default function MessagesPage() {
     const messagesEndRef = useRef(null);
     const socket = useSocket();
 
+    const updateConversationsList = (message) => {
+        setConversations(prev => {
+            const otherUser = message.sender._id === currentUser.id ? message.receiver : message.sender;
+            
+            const otherConversations = prev.filter(c => c.user._id !== otherUser._id);
+            const updatedConversation = {
+                user: otherUser,
+                lastMessage: message,
+                unreadCount: 0 // Assume read since user is on the page
+            };
+            
+            return [updatedConversation, ...otherConversations];
+        });
+    };
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -37,11 +53,9 @@ export default function MessagesPage() {
                     getConversations()
                 ]);
                 
-                // FIX: Handle different response structures
                 const usersData = usersRes.data || usersRes;
                 const conversationsData = conversationsRes.data || conversationsRes;
                 
-                // Exclude current user from the list
                 setUsers(Array.isArray(usersData) ? usersData.filter(u => u._id !== currentUser.id) : []);
                 setConversations(Array.isArray(conversationsData) ? conversationsData : []);
             } catch (error) {
@@ -65,35 +79,19 @@ export default function MessagesPage() {
                 }
             };
             fetchMessages();
+        } else {
+            setMessages([]);
         }
     }, [selectedUser]);
     
-    // Socket.io listener for new messages
     useEffect(() => {
         if (!socket) return;
         
         const handleNewMessage = (message) => {
-            // Add message only if it's part of the current conversation
-            if (selectedUser && 
-                (message.sender._id === selectedUser._id || message.receiver._id === selectedUser._id)) {
+            if (selectedUser && (message.sender._id === selectedUser._id || message.receiver._id === selectedUser._id)) {
                 setMessages(prev => [...prev, message]);
             }
-            
-            // Update conversations list with new message
-            setConversations(prev => {
-                const otherUserId = message.sender._id === currentUser.id 
-                    ? message.receiver._id 
-                    : message.sender._id;
-                
-                const existingConv = prev.find(conv => conv.user._id === otherUserId);
-                if (existingConv) {
-                    return [
-                        { ...existingConv, lastMessage: message },
-                        ...prev.filter(conv => conv.user._id !== otherUserId)
-                    ];
-                }
-                return prev;
-            });
+            updateConversationsList(message);
         };
 
         socket.on('directMessageCreated', handleNewMessage);
@@ -116,13 +114,23 @@ export default function MessagesPage() {
             };
             const res = await createDirectMessage(messageData);
             const newMessageData = res.data || res;
+            
             setMessages([...messages, newMessageData]);
+            updateConversationsList(newMessageData);
             setNewMessage('');
         } catch (error) {
             console.error("Failed to send message", error);
         }
     };
-
+    
+    const handleSelectUser = (user) => {
+        setSelectedUser(user);
+        // Add user to conversations if not already there
+        if (!conversations.some(c => c.user._id === user._id)) {
+            setConversations(prev => [{ user, lastMessage: null, unreadCount: 0 }, ...prev]);
+        }
+    };
+    
     const filteredUsers = Array.isArray(users) ? users.filter(user => 
         user._id !== currentUser.id &&
         user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -133,24 +141,17 @@ export default function MessagesPage() {
     ) : [];
 
     if (loading) {
-        return (
-            <div className="flex h-screen bg-gray-100 items-center justify-center">
-                <p>Loading messages...</p>
-            </div>
-        );
+        return <div className="flex h-screen bg-gray-100 items-center justify-center"><p>Loading messages...</p></div>;
     }
 
     return (
         <div className="flex h-screen bg-gray-100">
-            {/* User List Sidebar */}
             <aside className="w-1/3 md:w-1/4 bg-white border-r overflow-y-auto">
                 <div className="p-4 border-b">
                     <Link to={currentUser.role === 'client' ? '/client/dashboard' : '/freelancer/dashboard'} className="text-indigo-600 flex items-center gap-2">
                         <FaArrowLeft /> Back to Dashboard
                     </Link>
                     <h2 className="text-xl font-bold mt-4">Conversations</h2>
-                    
-                    {/* Search Bar */}
                     <div className="mt-3 relative">
                         <FaSearch className="absolute left-3 top-3 text-gray-400" />
                         <input
@@ -163,90 +164,67 @@ export default function MessagesPage() {
                     </div>
                 </div>
                 
-                {/* Conversations List */}
                 <div className="p-2">
                     <h3 className="font-semibold text-gray-700 mb-2">Recent Conversations</h3>
                     {filteredConversations.length > 0 ? (
                         filteredConversations.map(conv => (
                             <div
                                 key={conv.user._id}
-                                onClick={() => setSelectedUser(conv.user)}
+                                onClick={() => handleSelectUser(conv.user)}
                                 className={`p-3 cursor-pointer hover:bg-gray-50 rounded-lg mb-2 ${selectedUser?._id === conv.user._id ? 'bg-indigo-50 border border-indigo-200' : ''}`}
                             >
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center">
-                                        <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold mr-3">
+                                        <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold mr-3 flex-shrink-0">
                                             {conv.user.profilePicture ? (
                                                 <img src={`http://localhost:5001/${conv.user.profilePicture}`} alt={conv.user.name} className="w-10 h-10 rounded-full object-cover" />
                                             ) : (
                                                 <span>{conv.user.name?.charAt(0).toUpperCase() || 'U'}</span>
                                             )}
                                         </div>
-                                        <div>
-                                            <p className="font-semibold">{conv.user.name || 'Unknown User'}</p>
-                                            <p className="text-sm text-gray-500">{conv.user.role || 'user'}</p>
+                                        <div className="truncate">
+                                            <p className="font-semibold truncate">{conv.user.name || 'Unknown User'}</p>
+                                            {conv.lastMessage?.content ? (
+                                                <p className="text-sm text-gray-600 truncate">
+                                                    {conv.lastMessage.content}
+                                                </p>
+                                            ) : (
+                                                <p className="text-sm text-gray-400 italic">No messages yet</p>
+                                            )}
                                         </div>
                                     </div>
-                                    {conv.unreadCount > 0 && (
-                                        <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                                            {conv.unreadCount}
-                                        </span>
-                                    )}
                                 </div>
-                                {conv.lastMessage && (
-                                    <p className="text-sm text-gray-600 mt-1 truncate">
-                                        {conv.lastMessage.content?.substring(0, 30)}...
-                                    </p>
-                                )}
                             </div>
                         ))
                     ) : (
-                        <p className="text-gray-500 text-sm p-3">No conversations yet</p>
+                        <p className="text-gray-500 text-sm p-3">No recent conversations</p>
                     )}
                 </div>
 
-                {/* All Users List */}
                 <div className="p-2 border-t">
                     <h3 className="font-semibold text-gray-700 mb-2">All Users</h3>
-                    {filteredUsers.length > 0 ? (
-                        filteredUsers.map(user => (
-                            <div
-                                key={user._id}
-                                onClick={() => setSelectedUser(user)}
-                                className={`p-3 cursor-pointer hover:bg-gray-50 rounded-lg mb-2 ${selectedUser?._id === user._id ? 'bg-indigo-50 border border-indigo-200' : ''}`}
-                            >
-                                <div className="flex items-center">
-                                    <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold mr-3">
-                                        {user.profilePicture ? (
-                                            <img src={`http://localhost:5001/${user.profilePicture}`} alt={user.name} className="w-10 h-10 rounded-full object-cover" />
-                                        ) : (
-                                            <span>{user.name?.charAt(0).toUpperCase() || 'U'}</span>
-                                        )}
-                                    </div>
-                                    <div>
-                                        <p className="font-semibold">{user.name || 'Unknown User'}</p>
-                                        <p className="text-sm text-gray-500">{user.role || 'user'}</p>
-                                    </div>
+                    {filteredUsers.map(user => (
+                        <div key={user._id} onClick={() => handleSelectUser(user)} className={`p-3 cursor-pointer hover:bg-gray-50 rounded-lg mb-2 ${selectedUser?._id === user._id ? 'bg-indigo-50 border border-indigo-200' : ''}`}>
+                             <div className="flex items-center">
+                                <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold mr-3 flex-shrink-0">
+                                    {user.profilePicture ? (<img src={`http://localhost:5001/${user.profilePicture}`} alt={user.name} className="w-10 h-10 rounded-full object-cover" />) : (<span>{user.name?.charAt(0).toUpperCase() || 'U'}</span>)}
+                                </div>
+                                <div className="truncate">
+                                    <p className="font-semibold truncate">{user.name || 'Unknown User'}</p>
+                                    <p className="text-sm text-gray-500">{user.role || 'user'}</p>
                                 </div>
                             </div>
-                        ))
-                    ) : (
-                        <p className="text-gray-500 text-sm p-3">No users found</p>
-                    )}
+                        </div>
+                    ))}
                 </div>
             </aside>
 
-            {/* Chat Area */}
             <main className="flex-1 flex flex-col">
                 {selectedUser ? (
                     <>
                         <header className="bg-white p-4 border-b flex items-center">
-                            <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold mr-3">
-                                {selectedUser.profilePicture ? (
-                                    <img src={`http://localhost:5001/${selectedUser.profilePicture}`} alt={selectedUser.name} className="w-10 h-10 rounded-full object-cover" />
-                                ) : (
-                                    <span>{selectedUser.name?.charAt(0).toUpperCase() || 'U'}</span>
-                                )}
+                             <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold mr-3 flex-shrink-0">
+                                {selectedUser.profilePicture ? (<img src={`http://localhost:5001/${selectedUser.profilePicture}`} alt={selectedUser.name} className="w-10 h-10 rounded-full object-cover" />) : (<span>{selectedUser.name?.charAt(0).toUpperCase() || 'U'}</span>)}
                             </div>
                             <div>
                                 <h2 className="text-xl font-bold">{selectedUser.name || 'Unknown User'}</h2>
@@ -254,45 +232,24 @@ export default function MessagesPage() {
                             </div>
                         </header>
                         <div className="flex-1 p-4 overflow-y-auto bg-gray-50">
-                            {messages.length === 0 ? (
-                                <div className="flex items-center justify-center h-full text-gray-500">
-                                    <p>No messages yet. Start a conversation!</p>
-                                </div>
-                            ) : (
-                                messages.map(msg => (
-                                    <div key={msg._id} className={`flex ${msg.sender._id === currentUser.id ? 'justify-end' : 'justify-start'} mb-4`}>
-                                        <div className={`rounded-lg px-4 py-2 max-w-lg ${msg.sender._id === currentUser.id ? 'bg-indigo-500 text-white' : 'bg-white border border-gray-200 text-black'}`}>
-                                            <p className="font-bold text-sm">{msg.sender.name}</p>
-                                            <p>{msg.content}</p>
-                                            <p className="text-xs text-right opacity-75 mt-1">{new Date(msg.createdAt).toLocaleTimeString()}</p>
-                                        </div>
+                            {messages.map(msg => (
+                                <div key={msg._id} className={`flex ${msg.sender?._id === currentUser.id ? 'justify-end' : 'justify-start'} mb-4`}>
+                                    <div className={`rounded-lg px-4 py-2 max-w-lg ${msg.sender?._id === currentUser.id ? 'bg-indigo-500 text-white' : 'bg-white border border-gray-200 text-black'}`}>
+                                        <p className="font-bold text-sm">{msg.sender.name}</p>
+                                        <p>{msg.content}</p>
+                                        <p className="text-xs text-right opacity-75 mt-1">{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                                     </div>
-                                ))
-                            )}
+                                </div>
+                            ))}
                             <div ref={messagesEndRef} />
                         </div>
                         <div className="bg-white p-4 border-t flex">
-                            <input
-                                type="text"
-                                value={newMessage}
-                                onChange={(e) => setNewMessage(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                                placeholder="Type a message..."
-                                className="flex-1 border rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                            <button 
-                                onClick={handleSendMessage} 
-                                className="ml-3 bg-indigo-500 text-white p-3 rounded-full hover:bg-indigo-600 transition-colors"
-                                disabled={!newMessage.trim()}
-                            >
-                                <FaPaperPlane />
-                            </button>
+                            <input type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()} placeholder="Type a message..." className="flex-1 border rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                            <button onClick={handleSendMessage} className="ml-3 bg-indigo-500 text-white p-3 rounded-full hover:bg-indigo-600 transition-colors" disabled={!newMessage.trim()}><FaPaperPlane /></button>
                         </div>
                     </>
                 ) : (
-                    <div className="flex-1 flex items-center justify-center text-gray-500">
-                        <p>Select a user to start a conversation.</p>
-                    </div>
+                    <div className="flex-1 flex items-center justify-center text-gray-500"><p>Select a user to start a conversation.</p></div>
                 )}
             </main>
         </div>

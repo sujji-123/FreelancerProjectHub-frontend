@@ -1,10 +1,11 @@
+// src/pages/FreelancerDashboard.jsx
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, Link, NavLink, Routes, Route } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import {
   FaUserCircle, FaCog, FaSignOutAlt, FaSearch, FaBell, FaStar,
   FaShoppingBag, FaClipboardList, FaFileContract, FaEnvelope, FaMoneyBill,
-  FaCheckCircle, FaSpinner, FaCircle, FaEdit, FaBars, FaComment, FaTasks
+  FaEdit, FaBars, FaTasks
 } from 'react-icons/fa';
 import { getProjects } from '../services/projectService';
 import { getFreelancerProposals, createProposal, withdrawProposal } from '../services/proposalService';
@@ -44,8 +45,8 @@ export default function FreelancerDashboard() {
   const [coverLetter, setCoverLetter] = useState('');
   const [bidAmount, setBidAmount] = useState('');
   const [notifications, setNotifications] = useState([]);
-  const [earnings, setEarnings] = useState(0); 
-  
+  const [earnings, setEarnings] = useState(0);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -174,7 +175,7 @@ export default function FreelancerDashboard() {
               <div className="flex flex-wrap items-center space-x-2 text-sm text-gray-500">
                 <span>Web Developer</span>
                 <span className="flex items-center text-yellow-400"><FaStar className="mr-1" />{profile?.rating || 0}/5</span>
-                <span>({(profile?.reviews?.length || 0)} reviews)</span>
+                
               </div>
               <div className="mt-3 flex flex-wrap gap-2">{profile?.skills.map(skill => (<span key={skill} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">{skill}</span>))}</div>
             </div>

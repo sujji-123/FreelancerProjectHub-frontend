@@ -27,6 +27,7 @@ const readUser = () => {
 const ProjectCollab = () => {
     const { projectId } = useParams();
     const socketRef = useRef(null);
+    const messagesEndRef = useRef(null);
     const [user] = useState(readUser());
     const [project, setProject] = useState(null);
     const [tasks, setTasks] = useState([]);
@@ -83,7 +84,7 @@ const ProjectCollab = () => {
             });
 
         }
-
+        
         return () => {
             if (socketRef.current) {
                 socketRef.current.disconnect();
@@ -91,6 +92,10 @@ const ProjectCollab = () => {
             }
         };
     }, [projectId, fetchData]);
+    
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
 
     const handleAddTask = async () => {
         if (!newTaskTitle.trim()) return;
@@ -145,11 +150,11 @@ const ProjectCollab = () => {
     };
 
     const handleSendMessage = async () => {
-        if (!newMessageContent.trim() || !socketRef.current) return;
+        if (!newMessageContent.trim()) return;
         try {
             const messagePayload = { project: projectId, content: newMessageContent };
-            const newMessage = await createMessage(messagePayload);
-            setMessages(prev => [...prev, newMessage]);
+            // The backend emits the message via socket, so we don't need to manually add it here
+            await createMessage(messagePayload);
             setNewMessageContent('');
         } catch (error) {
             toast.error('Failed to send message.');
@@ -201,15 +206,18 @@ const ProjectCollab = () => {
                     </ul>
                 </div>
 
-                <div className="bg-white border p-4 rounded-lg shadow-sm row-start-3 lg:row-start-auto">
+                <div className="bg-white border p-4 rounded-lg shadow-sm row-start-3 lg:row-start-auto flex flex-col">
                     <h2 className="text-xl font-semibold mb-4 text-gray-700">Chat</h2>
-                    <div className="border h-80 overflow-y-scroll mb-4 p-2 bg-gray-50 rounded-md flex flex-col gap-2">
+                    <div className="border h-80 overflow-y-auto mb-4 p-2 bg-gray-50 rounded-md flex-1 flex flex-col gap-2">
                         {messages.map((msg) => (
-                            <div key={msg._id}>
-                                <strong className="text-sm text-gray-800">{msg.sender?.name || 'User'}:</strong>
-                                <p className="text-gray-600 bg-white p-2 rounded-md">{msg.content}</p>
+                            <div key={msg._id} className={`flex ${msg.sender?._id === user.id ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`rounded-lg px-3 py-2 max-w-xs ${msg.sender?._id === user.id ? 'bg-indigo-500 text-white' : 'bg-gray-200 text-black'}`}>
+                                    <p className="font-bold text-sm">{msg.sender?.name || 'User'}</p>
+                                    <p>{msg.content}</p>
+                                </div>
                             </div>
                         ))}
+                        <div ref={messagesEndRef} />
                     </div>
                     <div className="flex gap-2">
                         <input type="text" className="border p-2 w-full rounded-md" placeholder="Type a message..." value={newMessageContent} onChange={(e) => setNewMessageContent(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()} />
