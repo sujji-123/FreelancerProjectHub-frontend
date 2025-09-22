@@ -1,5 +1,5 @@
 // src/services/taskService.js
-import api from "./api"; // use configured axios instance that attaches token automatically
+import api from "./api";
 
 export const createTask = async (taskData) => {
   const res = await api.post(`/tasks`, taskData);
@@ -19,4 +19,9 @@ export const updateTask = async (id, updates) => {
 export const deleteTask = async (id) => {
   const res = await api.delete(`/tasks/${id}`);
   return res.data;
+};
+
+export const updateTaskStatus = async (id, status) => {
+    const res = await api.patch(`/tasks/${id}/status`, { status });
+    return res.data;
 };

@@ -31,6 +31,7 @@ import RateUserPage from './pages/RateUserPage';
 import FreelancerMyProposals from './pages/FreelancerMyProposals';
 import FreelancerMyContracts from './pages/FreelancerMyContracts';
 import ReviewsPage from './pages/ReviewsPage';
+import TaskProgress from './pages/TaskProgress';
 
 function App() {
   return (
@@ -51,8 +52,13 @@ function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/client/dashboard/*" element={<ClientDashboard />} />
           <Route path="/freelancer/dashboard/*" element={<FreelancerDashboard />} />
-          <Route path="/client/tasks" element={<TaskDetailsPage />} />
-          <Route path="/freelancer/tasks" element={<TaskDetailsPage />} />
+
+          {/* --- THIS IS THE FIX --- */}
+          {/* You had a route for freelancer/tasks but not client/tasks */}
+          <Route path="/client/tasks" element={<TaskProgress />} />
+          <Route path="/freelancer/tasks" element={<TaskProgress />} />
+          {/* --- END FIX --- */}
+          
           <Route path="/client/settings" element={<SettingsPage />} />
           <Route path="/freelancer/settings" element={<SettingsPage />} />
           <Route path="/client/proposals" element={<ClientProposals />} />
@@ -68,14 +74,17 @@ function App() {
           <Route path="/freelancers" element={<ViewFreelancers />} />
           <Route path="/project/collaborate/:projectId" element={<ProjectCollab />} />
           
-          {/* --- FIX: Dedicated routes for payment pages --- */}
           <Route path="/client/payment" element={<ClientPayment />} />
           <Route path="/freelancer/earnings" element={<FreelancerEarnings />} />
 
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/messages" element={<MessagesPage />} />
-          <Route path="/tasks" element={<TaskDetailsPage />} />
+          
+          {/* This general route was also changed to use the new component */}
+          <Route path="/tasks" element={<TaskProgress />} /> 
+          
           <Route path="/reviews" element={<ReviewsPage />} />
+          <Route path="/task-progress" element={<TaskProgress />} />
         </Routes>
       </Router>
     </SocketProvider>
