@@ -5,6 +5,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { SocketProvider } from './context/SocketContext';
 
+import LandingPage from './pages/LandingPage'; // Import the new Landing Page
 import Signup from './pages/Signup';
 import Verify from './pages/Verify';
 import Login from './pages/Login';
@@ -43,22 +44,19 @@ function App() {
           hideProgressBar={false}
         />
         <Routes>
+          {/* MODIFICATION: The root path now shows the Landing Page */}
+          <Route path="/" element={<LandingPage />} /> 
+
           <Route path="/signup" element={<Signup />} />
           <Route path="/verify" element={<Verify />} />
           <Route path="/login" element={<Login />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/" element={<Signup />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/client/dashboard/*" element={<ClientDashboard />} />
           <Route path="/freelancer/dashboard/*" element={<FreelancerDashboard />} />
-
-          {/* --- THIS IS THE FIX --- */}
-          {/* You had a route for freelancer/tasks but not client/tasks */}
           <Route path="/client/tasks" element={<TaskProgress />} />
           <Route path="/freelancer/tasks" element={<TaskProgress />} />
-          {/* --- END FIX --- */}
-          
           <Route path="/client/settings" element={<SettingsPage />} />
           <Route path="/freelancer/settings" element={<SettingsPage />} />
           <Route path="/client/proposals" element={<ClientProposals />} />
@@ -73,16 +71,11 @@ function App() {
           <Route path="/clients" element={<ViewClients />} />
           <Route path="/freelancers" element={<ViewFreelancers />} />
           <Route path="/project/collaborate/:projectId" element={<ProjectCollab />} />
-          
           <Route path="/client/payment" element={<ClientPayment />} />
           <Route path="/freelancer/earnings" element={<FreelancerEarnings />} />
-
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/messages" element={<MessagesPage />} />
-          
-          {/* This general route was also changed to use the new component */}
           <Route path="/tasks" element={<TaskProgress />} /> 
-          
           <Route path="/reviews" element={<ReviewsPage />} />
           <Route path="/task-progress" element={<TaskProgress />} />
         </Routes>
