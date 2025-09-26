@@ -5,7 +5,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { SocketProvider } from './context/SocketContext';
 
-import LandingPage from './pages/LandingPage'; // Import the new Landing Page
+import LandingPage from './pages/LandingPage';
 import Signup from './pages/Signup';
 import Verify from './pages/Verify';
 import Login from './pages/Login';
@@ -25,7 +25,6 @@ import ClientPayment from './pages/ClientPayment';
 import FreelancerEarnings from './pages/FreelancerEarnings';
 import NotificationsPage from './pages/NotificationsPage';
 import MessagesPage from './pages/MessagesPage';
-import TaskDetailsPage from './pages/TaskDetailsPage';
 import SettingsPage from './pages/SettingsPage';
 import ClientProposals from './pages/ClientProposals';
 import RateUserPage from './pages/RateUserPage';
@@ -33,6 +32,7 @@ import FreelancerMyProposals from './pages/FreelancerMyProposals';
 import FreelancerMyContracts from './pages/FreelancerMyContracts';
 import ReviewsPage from './pages/ReviewsPage';
 import TaskProgress from './pages/TaskProgress';
+import UserProfilePage from './pages/UserProfilePage'; // ADDED
 
 function App() {
   return (
@@ -44,9 +44,7 @@ function App() {
           hideProgressBar={false}
         />
         <Routes>
-          {/* MODIFICATION: The root path now shows the Landing Page */}
           <Route path="/" element={<LandingPage />} /> 
-
           <Route path="/signup" element={<Signup />} />
           <Route path="/verify" element={<Verify />} />
           <Route path="/login" element={<Login />} />
@@ -70,12 +68,12 @@ function App() {
           <Route path="/client/my-projects" element={<MyProjects />} />
           <Route path="/clients" element={<ViewClients />} />
           <Route path="/freelancers" element={<ViewFreelancers />} />
+          <Route path="/profile/:userId" element={<UserProfilePage />} /> {/* ADDED */}
           <Route path="/project/collaborate/:projectId" element={<ProjectCollab />} />
           <Route path="/client/payment" element={<ClientPayment />} />
           <Route path="/freelancer/earnings" element={<FreelancerEarnings />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/messages" element={<MessagesPage />} />
-          <Route path="/tasks" element={<TaskProgress />} /> 
           <Route path="/reviews" element={<ReviewsPage />} />
           <Route path="/task-progress" element={<TaskProgress />} />
         </Routes>

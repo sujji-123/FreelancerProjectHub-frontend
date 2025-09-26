@@ -15,10 +15,12 @@ export const changePassword = (passwordData) => api.put('/users/profile/change-p
 
 export const updateNotificationPreferences = (preferences) => api.put('/users/profile/notification-preferences', preferences);
 
-// This function was missing and is required for the RateUserPage to work.
 export const getCollaboratedUsers = () => api.get('/users/collaborated');
 
 export const getAllUsers = () => api.get('/users');
+
+// ADDED: New function to get a single user's public profile
+export const getUserProfileById = (id) => api.get(`/users/${id}`);
 
 export default {
     getProfile,
@@ -29,5 +31,6 @@ export default {
     getAllUsers,
     changePassword,
     updateNotificationPreferences,
-    getCollaboratedUsers // EXPORTED
+    getCollaboratedUsers,
+    getUserProfileById // EXPORTED
 };

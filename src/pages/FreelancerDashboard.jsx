@@ -198,19 +198,32 @@ export default function FreelancerDashboard() {
                   <h3 className="font-semibold text-gray-800">{project.title}</h3>
                   <span className="font-bold text-indigo-600">${project.budget}</span>
                 </div>
+                {/* --- MODIFICATION START --- */}
+                <div className="text-sm text-gray-500 mt-2">
+                    <p>Client: {project.client?.name || 'N/A'}</p>
+                    <p className="flex items-center">
+                        Rating: {project.client?.rating || 0}/5 <FaStar className="ml-1 text-yellow-400" />
+                    </p>
+                </div>
+                {/* --- MODIFICATION END --- */}
                 <p className="text-sm text-gray-600 mb-3 truncate">{project.description}</p>
-                {(() => {
-                  const myProposal = proposals.find(pr => String(pr.project && (pr.project._id || pr.project)) === String(project._id));
-                  if (myProposal) {
-                    if (myProposal.status === "pending") {
-                      return (<div className="flex flex-col sm:flex-row gap-2"><button disabled className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg font-medium">Proposal Sent</button><button onClick={() => handleWithdrawProposal(myProposal._id)} className="bg-red-500 text-white px-4 py-2 rounded-lg">Withdraw</button></div>);
-                    } if (myProposal.status === "accepted") {
-                      return (<button disabled className="w-full bg-green-100 text-green-700 py-2 rounded-lg font-medium">Accepted ✅</button>);
-                    } if (myProposal.status === "rejected") {
-                      return (<button disabled className="w-full bg-red-100 text-red-700 py-2 rounded-lg font-medium">Rejected ❌</button>);
-                    } return (<button disabled className="w-full bg-gray-300 text-gray-700 py-2 rounded-lg font-medium">{myProposal.status}</button>);
-                  } return (<button onClick={() => handleApplyClick(project)} className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 font-medium">Apply Now</button>);
-                })()}
+                {/* --- MODIFICATION START --- */}
+                <div className="mt-4 pt-4 border-t flex items-center justify-between">
+                    <Link to={`/profile/${project.client._id}`} className="text-sm text-indigo-600 hover:underline font-semibold">View Client Details</Link>
+                    {(() => {
+                        const myProposal = proposals.find(pr => String(pr.project && (pr.project._id || pr.project)) === String(project._id));
+                        if (myProposal) {
+                            if (myProposal.status === "pending") {
+                                return (<div className="flex flex-col sm:flex-row gap-2"><button disabled className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg font-medium">Proposal Sent</button><button onClick={() => handleWithdrawProposal(myProposal._id)} className="bg-red-500 text-white px-4 py-2 rounded-lg">Withdraw</button></div>);
+                            } if (myProposal.status === "accepted") {
+                                return (<button disabled className="w-full bg-green-100 text-green-700 py-2 rounded-lg font-medium">Accepted ✅</button>);
+                            } if (myProposal.status === "rejected") {
+                                return (<button disabled className="w-full bg-red-100 text-red-700 py-2 rounded-lg font-medium">Rejected ❌</button>);
+                            } return (<button disabled className="w-full bg-gray-300 text-gray-700 py-2 rounded-lg font-medium">{myProposal.status}</button>);
+                        } return (<button onClick={() => handleApplyClick(project)} className="bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 font-medium">Apply Now</button>);
+                    })()}
+                </div>
+                {/* --- MODIFICATION END --- */}
               </div>
             )) : (<p className="text-gray-500">No open projects matching your search.</p>)}
           </div>
@@ -258,10 +271,8 @@ export default function FreelancerDashboard() {
           FreelancerHub
           <button className="lg:hidden text-gray-600" onClick={() => setSidebarOpen(false)}>✖</button>
         </div>
-        {/* --- MODIFICATION START --- */}
         <nav className="flex-grow p-4 space-y-2 overflow-y-auto">
-        {/* --- MODIFICATION END --- */}
-          <NavLink to="/freelancer/dashboard" className={({isActive}) => `flex items-center px-4 py-2.5 rounded-lg ${isActive ? 'bg-indigo-100 text-gray-700 font-semibold' : 'text-gray-600 hover:bg-indigo-50'}`}><FaUserCircle className="mr-3 h-5 w-5" /> Dashboard</NavLink>
+          <NavLink to="/freelancer/dashboard" end className={({isActive}) => `flex items-center px-4 py-2.5 rounded-lg ${isActive ? 'bg-indigo-100 text-gray-700 font-semibold' : 'text-gray-600 hover:bg-indigo-50'}`}><FaUserCircle className="mr-3 h-5 w-5" /> Dashboard</NavLink>
           <NavLink to="/freelancer/projects" className={({isActive}) => `flex items-center px-4 py-2.5 rounded-lg ${isActive ? 'bg-indigo-100 text-gray-700 font-semibold' : 'text-gray-600 hover:bg-indigo-50'}`}><FaShoppingBag className="mr-3 h-5 w-5" /> Browse Projects</NavLink>
           <NavLink to="/freelancer/my-proposals" className={({isActive}) => `flex items-center px-4 py-2.5 rounded-lg ${isActive ? 'bg-indigo-100 text-gray-700 font-semibold' : 'text-gray-600 hover:bg-indigo-50'}`}><FaClipboardList className="mr-3 h-5 w-5" /> My Proposals</NavLink>
           <NavLink to="/clients" className={({isActive}) => `flex items-center px-4 py-2.5 rounded-lg ${isActive ? 'bg-indigo-100 text-gray-700 font-semibold' : 'text-gray-600 hover:bg-indigo-50'}`}><FaUserCircle className="mr-3 h-5 w-5" /> View Clients</NavLink>

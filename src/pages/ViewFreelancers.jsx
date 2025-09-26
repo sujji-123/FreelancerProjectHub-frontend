@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { getAllFreelancers } from '../services/userService';
 import { toast } from 'react-toastify';
+import { Link } from 'react-router-dom'; // ADDED
 
 export default function ViewFreelancers() {
     const [freelancers, setFreelancers] = useState([]);
@@ -28,7 +29,8 @@ export default function ViewFreelancers() {
             <h1 className="text-2xl md:text-3xl font-bold mb-4">All Freelancers</h1>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {freelancers.map(freelancer => (
-                    <div key={freelancer._id} className="bg-white rounded-lg shadow p-4">
+                    // MODIFIED: Wrapped card in a Link
+                    <Link to={`/profile/${freelancer._id}`} key={freelancer._id} className="bg-white rounded-lg shadow p-4 block hover:shadow-lg transition-shadow">
                         <div className="flex items-center">
                             {freelancer.profilePicture ? (
                                 <img src={`http://localhost:5001/${freelancer.profilePicture}`} alt={freelancer.name} className="w-12 h-12 rounded-full object-cover" />
@@ -47,7 +49,7 @@ export default function ViewFreelancers() {
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </Link>
                 ))}
             </div>
         </div>
