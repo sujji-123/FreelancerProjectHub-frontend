@@ -1,10 +1,10 @@
 // src/pages/FreelancerProjects.jsx
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { getProjects } from '../services/projectService';
 import { createProposal, getFreelancerProposals, withdrawProposal } from '../services/proposalService';
 import { toast } from 'react-toastify';
-import { FaUserCircle } from 'react-icons/fa';
+import { FaUserCircle, FaStar } from 'react-icons/fa';
 
 const readUser = () => {
   try { return JSON.parse(localStorage.getItem('user') || 'null'); } catch { return null; }
@@ -17,7 +17,7 @@ export default function FreelancerProjects() {
   const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const [applyFor, setApplyFor] = useState(null); // project object
+  const [applyFor, setApplyFor] = useState(null);
   const [bidAmount, setBidAmount] = useState('');
   const [coverLetter, setCoverLetter] = useState('');
 
@@ -50,12 +50,10 @@ export default function FreelancerProjects() {
   const submitProposal = async (e) => {
     e.preventDefault();
     if (!applyFor) return;
-
     if (!bidAmount || !coverLetter.trim()) {
       toast.error('Please enter bid amount and cover letter.');
       return;
     }
-
     try {
       await createProposal({
         projectId: applyFor._id,
@@ -94,7 +92,6 @@ export default function FreelancerProjects() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-5xl mx-auto">
         <h1 className="text-2xl font-semibold mb-4">Browse Projects</h1>
-
         {openProjects.length === 0 ? (
           <p>No open projects yet.</p>
         ) : (
@@ -107,13 +104,21 @@ export default function FreelancerProjects() {
                     <h2 className="text-lg font-semibold">{p.title}</h2>
                     <p className="text-gray-600 whitespace-pre-line mt-1">{p.description}</p>
                     <div className="text-sm text-gray-500 mt-2">Budget: ${p.budget}</div>
-                    {/* --- CHANGE: CLIENT NAME DISPLAYED HERE --- */}
+                    {/* --- MODIFICATION START --- */}
                     <div className="flex items-center text-sm text-gray-500 mt-1">
                       <FaUserCircle className="mr-1 text-gray-400" />
                       Client: {p.client?.name || 'N/A'}
                     </div>
+                     <div className="flex items-center text-sm text-gray-500 mt-1">
+                        <FaStar className="mr-1 text-yellow-400" />
+                        Client Rating: {(p.client?.rating || 0).toFixed(1)}/5
+                    </div>
                   </div>
-                  <div className="mt-3 pt-3 border-t">
+                  <div className="mt-3 pt-3 border-t flex items-center justify-between">
+                    <Link to={`/profile/${p.client._id}`} className="text-sm text-indigo-600 hover:underline font-semibold">
+                        View Client Details
+                    </Link>
+                    {/* --- MODIFICATION END --- */}
                     {(() => {
                       if (myProposal) {
                         if (myProposal.status === "pending") {
@@ -156,39 +161,15 @@ export default function FreelancerProjects() {
             <form onSubmit={submitProposal} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Bid Amount (USD)</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={bidAmount}
-                  onChange={(e) => setBidAmount(e.target.value)}
-                  className="w-full border rounded-lg p-2"
-                  placeholder="e.g., 1200"
-                />
+                <input type="number" min="1" value={bidAmount} onChange={(e) => setBidAmount(e.target.value)} className="w-full border rounded-lg p-2" placeholder="e.g., 1200" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Cover Letter</label>
-                <textarea
-                  rows={6}
-                  value={coverLetter}
-                  onChange={(e) => setCoverLetter(e.target.value)}
-                  className="w-full border rounded-lg p-2"
-                  placeholder="Explain why you’re a great fit…"
-                />
+                <textarea rows={6} value={coverLetter} onChange={(e) => setCoverLetter(e.target.value)} className="w-full border rounded-lg p-2" placeholder="Explain why you’re a great fit…" />
               </div>
               <div className="flex gap-2 justify-end">
-                <button
-                  type="button"
-                  className="px-4 py-2 rounded-xl bg-gray-200"
-                  onClick={() => setApplyFor(null)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700"
-                >
-                  Submit Proposal
-                </button>
+                <button type="button" className="px-4 py-2 rounded-xl bg-gray-200" onClick={() => setApplyFor(null)}>Cancel</button>
+                <button type="submit" className="px-4 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700">Submit Proposal</button>
               </div>
             </form>
           </div>

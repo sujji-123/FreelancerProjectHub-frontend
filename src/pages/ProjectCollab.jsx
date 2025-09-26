@@ -143,8 +143,9 @@ const ProjectCollab = () => {
         formData.append('project', projectId);
 
         try {
-            const newDeliverable = await uploadDeliverable(formData);
-            setDeliverables([...deliverables, newDeliverable]);
+            // Service already handles multipart form data
+            await uploadDeliverable(formData);
+            // We don't need to manually add to state, socket event will handle it
             setFile(null);
             document.getElementById('file-input').value = '';
             toast.success('Deliverable uploaded!');
@@ -168,7 +169,7 @@ const ProjectCollab = () => {
         if (window.confirm('Are you sure you want to delete this file? This cannot be undone.')) {
             try {
                 await deleteDeliverable(deliverableId);
-                setDeliverables(prev => prev.filter(d => d._id !== deliverableId));
+                // We don't need to manually remove from state, socket event will handle it
                 toast.success('Deliverable deleted!');
             } catch (error) {
                 toast.error(error.response?.data?.error || 'Failed to delete deliverable.');
@@ -250,10 +251,11 @@ const ProjectCollab = () => {
                         {deliverables.map((d) => (
                              <div key={d._id} className="relative p-2 bg-gray-50 rounded-md group">
                                 <img
-                                    src={`${SOCKET_URL}/${d.fileUrl}`}
+                                    /* MODIFIED: Use the direct Cloudinary URL */
+                                    src={d.fileUrl}
                                     alt="deliverable"
                                     className="w-full h-24 object-cover rounded-md cursor-pointer"
-                                    onClick={() => setSelectedImage(`${SOCKET_URL}/${d.fileUrl}`)}
+                                    onClick={() => setSelectedImage(d.fileUrl)}
                                 />
                                 {user.id === d.uploadedBy?._id && (
                                     <button 
@@ -270,7 +272,6 @@ const ProjectCollab = () => {
                 </div>
             </div>
 
-            {/* --- MODIFICATION START --- */}
             {selectedImage && (
                 <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4" onClick={() => setSelectedImage(null)}>
                     <button 
@@ -288,12 +289,10 @@ const ProjectCollab = () => {
                         src={selectedImage} 
                         alt="Full screen deliverable" 
                         className="max-h-full max-w-full object-contain"
-                        onClick={(e) => e.stopPropagation()} // Prevents closing when clicking the image
+                        onClick={(e) => e.stopPropagation()}
                     />
                 </div>
             )}
-            {/* --- MODIFICATION END --- */}
-
         </div>
     );
 };
