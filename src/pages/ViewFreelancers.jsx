@@ -33,7 +33,7 @@ export default function ViewFreelancers() {
                     <Link to={`/profile/${freelancer._id}`} key={freelancer._id} className="bg-white rounded-lg shadow p-4 block hover:shadow-lg transition-shadow">
                         <div className="flex items-center">
                             {freelancer.profilePicture ? (
-                                <img src={`http://localhost:5001/${freelancer.profilePicture}`} alt={freelancer.name} className="w-12 h-12 rounded-full object-cover" />
+                                <img src={`${freelancer.profilePicture}`} alt={freelancer.name} className="w-12 h-12 rounded-full object-cover" />
                             ) : (
                                 <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">
                                     {freelancer.name.charAt(0).toUpperCase()}

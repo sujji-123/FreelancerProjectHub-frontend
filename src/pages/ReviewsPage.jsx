@@ -75,7 +75,7 @@ export default function ReviewsPage() {
                             <div key={review._id} className="bg-white rounded-xl shadow-md p-5 border border-gray-200">
                                 <div className="flex items-start gap-4">
                                     {review.reviewer?.profilePicture ? (
-                                        <img src={`http://localhost:5001/${review.reviewer.profilePicture}`} alt={review.reviewer.name} className="w-12 h-12 rounded-full object-cover" />
+                                        <img src={`/${review.reviewer.profilePicture}`} alt={review.reviewer.name} className="w-12 h-12 rounded-full object-cover" />
                                     ) : (
                                         <FaUserCircle className="text-gray-400 text-5xl" />
                                     )}

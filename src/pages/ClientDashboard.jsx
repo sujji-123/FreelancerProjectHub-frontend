@@ -254,7 +254,7 @@ export default function ClientDashboard() {
         <div className="px-6 py-5 flex items-center gap-3 border-b">
           <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center relative">
             <label htmlFor="profile-picture-upload" className="cursor-pointer">
-                {profile?.profilePicture ? (<img src={`http://localhost:5001/${profile.profilePicture}`} alt="Profile" className="w-10 h-10 rounded-full object-cover" />) : (<FaBriefcase className="text-indigo-600" />)}
+                {profile?.profilePicture ? (<img src={profile?.profilePicture?.replace('https://res.cloudinary.com/daxvjw2au/image/upload/', '/images/')} alt="Profile" className="w-10 h-10 rounded-full object-cover" />) : (<FaBriefcase className="text-indigo-600" />)}
             </label>
             <input type="file" id="profile-picture-upload" className="hidden" onChange={handleProfilePictureChange} />
           </div>

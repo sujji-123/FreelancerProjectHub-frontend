@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import axios from 'axios';
 
 const apiClient = axios.create({
-  baseURL: 'http://localhost:5001/api/auth',
+  baseURL: '/api/auth',
 });
 
 const Verify = () => {

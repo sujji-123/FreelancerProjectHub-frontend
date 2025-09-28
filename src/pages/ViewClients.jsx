@@ -33,7 +33,7 @@ export default function ViewClients() {
                     <Link to={`/profile/${client._id}`} key={client._id} className="bg-white rounded-lg shadow p-4 block hover:shadow-lg transition-shadow">
                         <div className="flex items-center">
                             {client.profilePicture ? (
-                                <img src={`http://localhost:5001/${client.profilePicture}`} alt={client.name} className="w-12 h-12 rounded-full object-cover" />
+                                <img src={`/${client.profilePicture}`} alt={client.name} className="w-12 h-12 rounded-full object-cover" />
                             ) : (
                                 <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">
                                     {client.name.charAt(0).toUpperCase()}

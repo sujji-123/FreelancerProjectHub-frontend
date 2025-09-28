@@ -167,7 +167,7 @@ export default function FreelancerDashboard() {
         <div className="bg-white rounded-xl shadow-md p-6 flex flex-col sm:flex-row items-center sm:justify-between gap-6">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xl relative">
-              <label htmlFor="profile-picture-upload" className="cursor-pointer">{profile?.profilePicture ? (<img src={`http://localhost:5001/${profile.profilePicture}`} alt="Profile" className="w-16 h-16 rounded-full object-cover" />) : (<span>{profile?.name ? profile.name.charAt(0).toUpperCase() : 'U'}</span>)}</label>
+              <label htmlFor="profile-picture-upload" className="cursor-pointer">{profile?.profilePicture ? (<img src={profile?.profilePicture?.replace('https://res.cloudinary.com/daxvjw2au/image/upload/', '/images/')} alt="Profile" className="w-16 h-16 rounded-full object-cover" />) : (<span>{profile?.name ? profile.name.charAt(0).toUpperCase() : 'U'}</span>)}</label>
               <input type="file" id="profile-picture-upload" className="hidden" onChange={handleProfilePictureChange} />
             </div>
             <div>

@@ -11,7 +11,7 @@ export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    const newSocket = io('http://localhost:5001', {
+    const newSocket =io({
       auth: {
         token: localStorage.getItem('token')
       }

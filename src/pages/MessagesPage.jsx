@@ -176,7 +176,7 @@ export default function MessagesPage() {
                                     <div className="flex items-center">
                                         <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold mr-3 flex-shrink-0">
                                             {conv.user.profilePicture ? (
-                                                <img src={`http://localhost:5001/${conv.user.profilePicture}`} alt={conv.user.name} className="w-10 h-10 rounded-full object-cover" />
+                                                <img src={B.user.profilePicture} alt={conv.user.name} className="w-10 h-10 rounded-full object-cover" />
                                             ) : (
                                                 <span>{conv.user.name?.charAt(0).toUpperCase() || 'U'}</span>
                                             )}
@@ -206,7 +206,7 @@ export default function MessagesPage() {
                         <div key={user._id} onClick={() => handleSelectUser(user)} className={`p-3 cursor-pointer hover:bg-gray-50 rounded-lg mb-2 ${selectedUser?._id === user._id ? 'bg-indigo-50 border border-indigo-200' : ''}`}>
                              <div className="flex items-center">
                                 <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold mr-3 flex-shrink-0">
-                                    {user.profilePicture ? (<img src={`http://localhost:5001/${user.profilePicture}`} alt={user.name} className="w-10 h-10 rounded-full object-cover" />) : (<span>{user.name?.charAt(0).toUpperCase() || 'U'}</span>)}
+                                    {user.profilePicture ? (<img src={B.user.profilePicture} alt={user.name} className="w-10 h-10 rounded-full object-cover" />) : (<span>{user.name?.charAt(0).toUpperCase() || 'U'}</span>)}
                                 </div>
                                 <div className="truncate">
                                     <p className="font-semibold truncate">{user.name || 'Unknown User'}</p>
@@ -226,7 +226,7 @@ export default function MessagesPage() {
                                  <FaArrowLeft />
                              </button>
                              <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold mr-3 flex-shrink-0">
-                                {selectedUser.profilePicture ? (<img src={`http://localhost:5001/${selectedUser.profilePicture}`} alt={selectedUser.name} className="w-10 h-10 rounded-full object-cover" />) : (<span>{selectedUser.name?.charAt(0).toUpperCase() || 'U'}</span>)}
+                                {selectedUser.profilePicture ? (<img src={B.user.profilePicture} alt={selectedUser.name} className="w-10 h-10 rounded-full object-cover" />) : (<span>{selectedUser.name?.charAt(0).toUpperCase() || 'U'}</span>)}
                             </div>
                             <div>
                                 <h2 className="text-xl font-bold">{selectedUser.name || 'Unknown User'}</h2>

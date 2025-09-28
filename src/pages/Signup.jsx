@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 const apiClient = axios.create({
-  baseURL: 'http://localhost:5001/api/auth', 
+  baseURL: '/api/auth', 
 });
 
 const Signup = () => {

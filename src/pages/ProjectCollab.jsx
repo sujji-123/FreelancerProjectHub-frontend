@@ -10,7 +10,7 @@ import { toast } from 'react-toastify';
 import { FaArrowLeft, FaTrash } from 'react-icons/fa';
 import { jwtDecode } from 'jwt-decode';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5001';
+const SOCKET_URL = '/';
 
 const readUser = () => {
   try {
