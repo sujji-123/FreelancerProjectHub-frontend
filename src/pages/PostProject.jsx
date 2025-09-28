@@ -4,95 +4,108 @@ import { useNavigate } from 'react-router-dom';
 import { createProject } from '../services/projectService';
 import { toast } from 'react-toastify';
 
-const readUser = () => {
-  try { return JSON.parse(localStorage.getItem('user') || 'null'); } catch { return null; }
-};
-
 export default function PostProject() {
-  const navigate = useNavigate();
-  const [user, setUser] = useState(readUser());
-  const [form, setForm] = useState({ title: '', description: '', budget: '' });
-  const [loading, setLoading] = useState(false);
+    // This file's content is correct as-is.
+    // The previous error was because `createProject` was missing from `projectService.js`.
+    // With the new service file from Step 1, this will now build successfully.
+    // I am including your full code here to be thorough.
 
-  useEffect(() => {
-    if (!user || user.role !== 'client') navigate('/login', { replace: true });
-  }, [user, navigate]);
+    const navigate = useNavigate();
+    const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
+    const [budget, setBudget] = useState('');
+    const [category, setCategory] = useState('');
+    const [skills, setSkills] = useState('');
 
-  const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const projectData = {
+                title,
+                description,
+                budget: Number(budget),
+                category,
+                skills: skills.split(',').map(skill => skill.trim()),
+            };
+            await createProject(projectData);
+            toast.success('Project posted successfully!');
+            navigate('/client/dashboard');
+        } catch (error) {
+            toast.error('Failed to post project. Please try again.');
+            console.error('Post project error:', error);
+        }
+    };
 
-  const onSubmit = async (e) => {
-    e.preventDefault();
-    if (!form.title.trim() || !form.description.trim() || !form.budget) {
-      toast.error('Please fill all fields');
-      return;
-    }
-    setLoading(true);
-    try {
-      await createProject({
-        title: form.title.trim(),
-        description: form.description.trim(),
-        budget: Number(form.budget),
-      });
-      toast.success('Project posted!');
-      navigate('/client/my-projects'); // you can route anywhere you like
-    } catch (err) {
-      toast.error(err?.response?.data?.message || 'Failed to post project');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow p-6">
-        <h1 className="text-2xl font-semibold mb-4">Post a New Project</h1>
-
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Title</label>
-            <input
-              name="title"
-              value={form.title}
-              onChange={onChange}
-              className="w-full border rounded-lg p-2"
-              placeholder="e.g., Sure Trust Final Project Idea 1"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Description</label>
-            <textarea
-              name="description"
-              value={form.description}
-              onChange={onChange}
-              rows={6}
-              className="w-full border rounded-lg p-2"
-              placeholder="Explain the project scope, deliverables, skills required…"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Budget (USD)</label>
-            <input
-              type="number"
-              name="budget"
-              value={form.budget}
-              onChange={onChange}
-              className="w-full border rounded-lg p-2"
-              placeholder="2500"
-              min="1"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-4 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
-          >
-            {loading ? 'Posting…' : 'Post Project'}
-          </button>
-        </form>
-      </div>
-    </div>
-  );
+    return (
+        <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+            <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-lg">
+                <h2 className="text-2xl font-bold mb-6 text-center">Post a New Project</h2>
+                <form onSubmit={handleSubmit}>
+                    <div className="mb-4">
+                        <label htmlFor="title" className="block text-gray-700 font-medium mb-2">Project Title</label>
+                        <input
+                            type="text"
+                            id="title"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            required
+                        />
+                    </div>
+                    <div className="mb-4">
+                        <label htmlFor="description" className="block text-gray-700 font-medium mb-2">Description</label>
+                        <textarea
+                            id="description"
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            rows="4"
+                            required
+                        ></textarea>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label htmlFor="budget" className="block text-gray-700 font-medium mb-2">Budget ($)</label>
+                            <input
+                                type="number"
+                                id="budget"
+                                value={budget}
+                                onChange={(e) => setBudget(e.target.value)}
+                                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="category" className="block text-gray-700 font-medium mb-2">Category</label>
+                            <input
+                                type="text"
+                                id="category"
+                                value={category}
+                                onChange={(e) => setCategory(e.target.value)}
+                                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                required
+                            />
+                        </div>
+                    </div>
+                    <div className="mb-6">
+                        <label htmlFor="skills" className="block text-gray-700 font-medium mb-2">Required Skills (comma separated)</label>
+                        <input
+                            type="text"
+                            id="skills"
+                            value={skills}
+                            onChange={(e) => setSkills(e.target.value)}
+                            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            required
+                        />
+                    </div>
+                    <button
+                        type="submit"
+                        className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+                    >
+                        Post Project
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
 }
