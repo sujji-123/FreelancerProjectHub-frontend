@@ -1,4 +1,3 @@
-// src/pages/client/ProposalReviewPage.jsx
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import proposalService from '../../services/proposalService';
@@ -14,7 +13,12 @@ export default function ProposalReviewPage() {
     const fetchProposals = async () => {
       try {
         const res = await proposalService.getClientProposals();
-        const filtered = res.data.filter(p => p.projectId === projectId);
+        // Improved filtering for consistency on _id/object/string types
+        const filtered = res.data.filter(
+          p =>
+            (typeof p.projectId === 'string' && p.projectId === projectId) ||
+            (p.projectId && p.projectId.toString && p.projectId.toString() === projectId)
+        );
         setProposals(filtered);
       } catch (err) {
         toast.error('Failed to load proposals.');
@@ -29,7 +33,6 @@ export default function ProposalReviewPage() {
     try {
       await proposalService.acceptProposal(id);
       toast.success('Proposal accepted.');
-      // Refresh list
       setProposals(p => p.map(item => item._id === id ? {...item, status: 'accepted'} : item));
     } catch {
       toast.error('Failed to accept proposal.');
@@ -83,3 +86,4 @@ export default function ProposalReviewPage() {
     </div>
   );
 }
+ 
