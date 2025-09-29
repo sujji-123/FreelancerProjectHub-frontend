@@ -13,9 +13,8 @@ export default function ProposalReviewPage() {
     const fetchProposals = async () => {
       try {
         const res = await proposalService.getClientProposals();
-        // Improved filtering for consistency on _id/object/string types
         const filtered = res.data.filter(
-          p =>
+          p => 
             (typeof p.projectId === 'string' && p.projectId === projectId) ||
             (p.projectId && p.projectId.toString && p.projectId.toString() === projectId)
         );
@@ -86,4 +85,3 @@ export default function ProposalReviewPage() {
     </div>
   );
 }
- 
