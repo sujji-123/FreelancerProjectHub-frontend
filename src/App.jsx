@@ -33,53 +33,55 @@ import FreelancerMyContracts from './pages/FreelancerMyContracts';
 import ReviewsPage from './pages/ReviewsPage';
 import TaskProgress from './pages/TaskProgress';
 import UserProfilePage from './pages/UserProfilePage'; // ADDED
+import ProposalReviewPage from './pages/client/ProposalReviewPage'; // ADDED import
 
 function App() {
-  return (
-    <SocketProvider>
-      <Router>
-        <ToastContainer
-          position="top-right"
-          autoClose={5000}
-          hideProgressBar={false}
-        />
-        <Routes>
-          <Route path="/" element={<LandingPage />} /> 
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/verify" element={<Verify />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/client/dashboard/*" element={<ClientDashboard />} />
-          <Route path="/freelancer/dashboard/*" element={<FreelancerDashboard />} />
-          <Route path="/client/tasks" element={<TaskProgress />} />
-          <Route path="/freelancer/tasks" element={<TaskProgress />} />
-          <Route path="/client/settings" element={<SettingsPage />} />
-          <Route path="/freelancer/settings" element={<SettingsPage />} />
-          <Route path="/client/proposals" element={<ClientProposals />} />
-          <Route path="/freelancer/my-proposals" element={<FreelancerMyProposals />} />
-          <Route path="/freelancer/my-contracts" element={<FreelancerMyContracts />} />
-          <Route path="/client/rate-user" element={<RateUserPage />} />
-          <Route path="/freelancer/rate-user" element={<RateUserPage />} />
-          <Route path="/project/:id" element={<ProjectDashboard />} />
-          <Route path="/client/post-project" element={<PostProject />} />
-          <Route path="/freelancer/projects" element={<FreelancerProjects />} />
-          <Route path="/client/my-projects" element={<MyProjects />} />
-          <Route path="/clients" element={<ViewClients />} />
-          <Route path="/freelancers" element={<ViewFreelancers />} />
-          <Route path="/profile/:userId" element={<UserProfilePage />} /> {/* ADDED */}
-          <Route path="/project/collaborate/:projectId" element={<ProjectCollab />} />
-          <Route path="/client/payment" element={<ClientPayment />} />
-          <Route path="/freelancer/earnings" element={<FreelancerEarnings />} />
-          <Route path="/notifications" element={<NotificationsPage />} />
-          <Route path="/messages" element={<MessagesPage />} />
-          <Route path="/reviews" element={<ReviewsPage />} />
-          <Route path="/task-progress" element={<TaskProgress />} />
-        </Routes>
-      </Router>
-    </SocketProvider>
-  );
+  return (
+    <SocketProvider>
+      <Router>
+        <ToastContainer
+          position="top-right"
+          autoClose={5000}
+          hideProgressBar={false}
+        />
+        <Routes>
+          <Route path="/" element={<LandingPage />} /> 
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/verify" element={<Verify />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/client/dashboard/*" element={<ClientDashboard />} />
+          <Route path="/freelancer/dashboard/*" element={<FreelancerDashboard />} />
+          <Route path="/client/tasks" element={<TaskProgress />} />
+          <Route path="/freelancer/tasks" element={<TaskProgress />} />
+          <Route path="/client/settings" element={<SettingsPage />} />
+          <Route path="/freelancer/settings" element={<SettingsPage />} />
+          <Route path="/client/proposals" element={<ClientProposals />} />
+          <Route path="/freelancer/my-proposals" element={<FreelancerMyProposals />} />
+          <Route path="/freelancer/my-contracts" element={<FreelancerMyContracts />} />
+          <Route path="/client/rate-user" element={<RateUserPage />} />
+          <Route path="/freelancer/rate-user" element={<RateUserPage />} />
+          <Route path="/project/:id" element={<ProjectDashboard />} />
+          <Route path="/client/post-project" element={<PostProject />} />
+          <Route path="/freelancer/projects" element={<FreelancerProjects />} />
+          <Route path="/client/my-projects" element={<MyProjects />} />
+          <Route path="/clients" element={<ViewClients />} />
+          <Route path="/freelancers" element={<ViewFreelancers />} />
+          <Route path="/profile/:userId" element={<UserProfilePage />} /> {/* ADDED */}
+          <Route path="/project/collaborate/:projectId" element={<ProjectCollab />} />
+          <Route path="/client/payment" element={<ClientPayment />} />
+          <Route path="/freelancer/earnings" element={<FreelancerEarnings />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/messages" element={<MessagesPage />} />
+          <Route path="/reviews" element={<ReviewsPage />} />
+          <Route path="/task-progress" element={<TaskProgress />} />
+          <Route path="/client/proposal-review/:projectId" element={<ProposalReviewPage />} /> {/* NEW */}
+        </Routes>
+      </Router>
+    </SocketProvider>
+  );
 }
 
 export default App;
