@@ -197,25 +197,54 @@ const ProjectCollab = () => {
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
                 <div className="bg-white border p-4 rounded-lg shadow-sm lg:col-span-2">
                     <h2 className="text-xl font-semibold mb-4 text-gray-700">Tasks</h2>
-                    <div className="flex mb-4 gap-2">
-                        <input type="text" className="border p-2 w-full rounded-md" placeholder="Add a new task..." value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddTask()} />
-                        <button className="bg-indigo-600 text-white px-4 py-2 rounded-md" onClick={handleAddTask}>Add</button>
+                    <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                        <input 
+                            type="text" 
+                            className="border p-2 flex-1 rounded-md" 
+                            placeholder="Add a new task..." 
+                            value={newTaskTitle} 
+                            onChange={(e) => setNewTaskTitle(e.target.value)} 
+                            onKeyDown={(e) => e.key === 'Enter' && handleAddTask()} 
+                        />
+                        <button 
+                            className="bg-indigo-600 text-white px-4 py-2 rounded-md sm:w-auto w-full"
+                            onClick={handleAddTask}
+                        >
+                            Add
+                        </button>
                     </div>
                     <ul className="space-y-2">
                         {tasks.map((task) => (
-                            <li key={task._id} className="flex justify-between items-center p-2 rounded-md bg-gray-50">
-                                <span className={task.status === 'done' ? 'line-through text-gray-500' : ''}>{task.title}</span>
-                                <div className="flex gap-2">
+                            <li key={task._id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 rounded-md bg-gray-50 gap-2">
+                                <span className={`flex-1 ${task.status === 'done' ? 'line-through text-gray-500' : ''}`}>
+                                    {task.title}
+                                </span>
+                                <div className="flex gap-2 justify-end sm:justify-start">
                                     {task.status === 'todo' && (
-                                        <button className="text-sm text-yellow-600" onClick={() => handleUpdateTaskStatus(task._id, 'inprogress')}>In Progress</button>
+                                        <button 
+                                            className="text-sm text-yellow-600 bg-yellow-50 px-2 py-1 rounded border border-yellow-200 sm:w-auto w-full"
+                                            onClick={() => handleUpdateTaskStatus(task._id, 'inprogress')}
+                                        >
+                                            In Progress
+                                        </button>
                                     )}
-                                     {task.status === 'inprogress' && (
-                                        <button className="text-sm text-green-600" onClick={() => handleUpdateTaskStatus(task._id, 'done')}>Done</button>
+                                    {task.status === 'inprogress' && (
+                                        <button 
+                                            className="text-sm text-green-600 bg-green-50 px-2 py-1 rounded border border-green-200 sm:w-auto w-full"
+                                            onClick={() => handleUpdateTaskStatus(task._id, 'done')}
+                                        >
+                                            Done
+                                        </button>
                                     )}
-                                    <button className="text-sm text-red-600" onClick={() => handleDeleteTask(task._id)}>Delete</button>
+                                    <button 
+                                        className="text-sm text-red-600 bg-red-50 px-2 py-1 rounded border border-red-200 sm:w-auto w-full"
+                                        onClick={() => handleDeleteTask(task._id)}
+                                    >
+                                        Delete
+                                    </button>
                                 </div>
                             </li>
                         ))}
@@ -235,19 +264,41 @@ const ProjectCollab = () => {
                         ))}
                         <div ref={messagesEndRef} />
                     </div>
-                    <div className="flex gap-2">
-                        <input type="text" className="border p-2 w-full rounded-md" placeholder="Type a message..." value={newMessageContent} onChange={(e) => setNewMessageContent(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()} />
-                        <button className="bg-indigo-600 text-white px-4 py-2 rounded-md" onClick={handleSendMessage}>Send</button>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                        <input 
+                            type="text" 
+                            className="border p-2 flex-1 rounded-md" 
+                            placeholder="Type a message..." 
+                            value={newMessageContent} 
+                            onChange={(e) => setNewMessageContent(e.target.value)} 
+                            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()} 
+                        />
+                        <button 
+                            className="bg-indigo-600 text-white px-4 py-2 rounded-md sm:w-auto w-full"
+                            onClick={handleSendMessage}
+                        >
+                            Send
+                        </button>
                     </div>
                 </div>
 
                 <div className="bg-white border p-4 rounded-lg shadow-sm lg:col-span-3">
                     <h2 className="text-xl font-semibold mb-4 text-gray-700">Deliverables</h2>
-                    <div className="flex items-center gap-4">
-                        <input id="file-input" type="file" className="flex-1" onChange={(e) => setFile(e.target.files[0])} />
-                        <button className="bg-green-600 text-white px-4 py-2 rounded-md" onClick={handleUploadDeliverable}>Upload</button>
+                    <div className="flex flex-col sm:flex-row items-center gap-3">
+                        <input 
+                            id="file-input" 
+                            type="file" 
+                            className="flex-1 w-full"
+                            onChange={(e) => setFile(e.target.files[0])} 
+                        />
+                        <button 
+                            className="bg-green-600 text-white px-4 py-2 rounded-md sm:w-auto w-full"
+                            onClick={handleUploadDeliverable}
+                        >
+                            Upload
+                        </button>
                     </div>
-                    <div className="mt-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                         {deliverables.map((d) => (
                              <div key={d._id} className="relative p-2 bg-gray-50 rounded-md group">
                                 <img
