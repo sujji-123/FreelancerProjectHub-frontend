@@ -80,7 +80,8 @@ export default function ProposalReviewPage() {
     
     if (freelancerId) {
       console.log('Navigating to freelancer profile with ID:', freelancerId);
-      navigate(`/client/freelancer/${freelancerId}`);
+      // FIXED: Changed route to match existing route in App.jsx
+      navigate(`/profile/${freelancerId}`);
     } else {
       console.warn('No freelancer ID found in proposal:', proposal);
       toast.info('Freelancer profile information is not available.');
