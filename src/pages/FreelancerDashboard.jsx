@@ -7,16 +7,14 @@ import {
   FaShoppingBag, FaClipboardList, FaFileContract, FaEnvelope, FaMoneyBill,
   FaEdit, FaBars, FaTasks
 } from 'react-icons/fa';
-// =================== CORRECTED IMPORTS ===================
-import * as projectService from '../services/projectService';
-import * as proposalService from '../services/proposalService';
-import * as notificationService from '../services/notificationService';
-// =========================================================
+import { getProjects } from '../services/projectService';
+import { getFreelancerProposals, createProposal, withdrawProposal } from '../services/proposalService';
 import { getProfile, uploadProfilePicture } from '../services/userService';
 import { getBalance } from '../services/paymentService';
 import { toast } from 'react-toastify';
 import EditProfileModal from '../components/Profile/EditProfileModal';
 import FreelancerEarnings from './FreelancerEarnings';
+import notificationService from '../services/notificationService';
 
 const readUser = () => {
   try {
@@ -54,8 +52,8 @@ export default function FreelancerDashboard() {
       try {
         const [profileRes, projectRes, proposalRes, notificationRes, balanceRes] = await Promise.all([
           getProfile(),
-          projectService.getProjects(),
-          proposalService.getFreelancerProposals(),
+          getProjects(),
+          getFreelancerProposals(),
           notificationService.getNotifications(),
           getBalance()
         ]);
@@ -83,7 +81,7 @@ export default function FreelancerDashboard() {
   useEffect(() => {
     const handler = async () => {
       try {
-        const res = await proposalService.getFreelancerProposals();
+        const res = await getFreelancerProposals();
         setProposals(res.data || []);
       } catch (err) { console.error("Failed to refresh proposals on update", err); }
     };
@@ -124,10 +122,10 @@ export default function FreelancerDashboard() {
       return;
     }
     try {
-      await proposalService.createProposal({ projectId: selectedProject._id, coverLetter, bidAmount: Number(bidAmount) });
+      await createProposal({ projectId: selectedProject._id, coverLetter, bidAmount: Number(bidAmount) });
       toast.success("Proposal submitted!");
       setShowModal(false);
-      const res = await proposalService.getFreelancerProposals();
+      const res = await getFreelancerProposals();
       setProposals(res.data || []);
     } catch (err) {
       console.error("Proposal submit error:", err);
@@ -138,9 +136,9 @@ export default function FreelancerDashboard() {
   const handleWithdrawProposal = async (proposalId) => {
     if (window.confirm('Are you sure you want to withdraw this proposal?')) {
       try {
-        await proposalService.withdrawProposal(proposalId);
+        await withdrawProposal(proposalId);
         toast.success('Proposal withdrawn');
-        const res = await proposalService.getFreelancerProposals();
+        const res = await getFreelancerProposals();
         setProposals(res.data || []);
       } catch (err) {
         toast.error(err.response?.data?.msg || 'Failed to withdraw proposal.');
@@ -200,13 +198,16 @@ export default function FreelancerDashboard() {
                   <h3 className="font-semibold text-gray-800">{project.title}</h3>
                   <span className="font-bold text-indigo-600">${project.budget}</span>
                 </div>
+                {/* --- MODIFICATION START --- */}
                 <div className="text-sm text-gray-500 mt-2">
                     <p>Client: {project.client?.name || 'N/A'}</p>
                     <p className="flex items-center">
                         Rating: {project.client?.rating || 0}/5 <FaStar className="ml-1 text-yellow-400" />
                     </p>
                 </div>
+                {/* --- MODIFICATION END --- */}
                 <p className="text-sm text-gray-600 mb-3 truncate">{project.description}</p>
+                {/* --- MODIFICATION START --- */}
                 <div className="mt-4 pt-4 border-t flex items-center justify-between">
                     <Link to={`/profile/${project.client._id}`} className="text-sm text-indigo-600 hover:underline font-semibold">View Client Details</Link>
                     {(() => {
@@ -222,6 +223,7 @@ export default function FreelancerDashboard() {
                         } return (<button onClick={() => handleApplyClick(project)} className="bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 font-medium">Apply Now</button>);
                     })()}
                 </div>
+                {/* --- MODIFICATION END --- */}
               </div>
             )) : (<p className="text-gray-500">No open projects matching your search.</p>)}
           </div>
