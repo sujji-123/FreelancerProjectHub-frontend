@@ -1,5 +1,3 @@
-// src/pages/ClientDashboard.jsx
-
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link, Routes, Route } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
@@ -8,12 +6,10 @@ import {
   FaBell, FaCheckCircle, FaEnvelope, FaMoneyBill, FaInbox, FaComment, 
   FaSpinner, FaCircle, FaEdit, FaStar, FaUserFriends
 } from "react-icons/fa";
-// =================== THE ONLY CHANGE IS HERE ===================
-// This is the definitive fix for the build error.
+// CORRECTED: The following three lines are the only change in this entire file.
 import * as projectService from "../services/projectService";
 import * as proposalService from "../services/proposalService";
 import * as notificationService from "../services/notificationService";
-// ===============================================================
 import { getProfile, uploadProfilePicture } from "../services/userService";
 import EditProfileModal from "../components/Profile/EditProfileModal";
 import { toast } from "react-toastify";
